@@ -76,6 +76,7 @@ final class AdminUsers {
         $has_access = $user->has_cap( CAPABILITY );
         ?>
         <h3>Hub D&D</h3>
+        <?php wp_nonce_field( 'mdnd_save_dnd_access', 'mdnd_dnd_access_nonce' ); ?>
         <table class="form-table">
             <tr>
                 <th><label for="dnd_access">Accès au Hub</label></th>
@@ -101,13 +102,18 @@ final class AdminUsers {
             return;
         }
 
+        // Vérification CSRF : nonce propre au plugin (défense en profondeur en plus
+        // du contrôle de référent effectué par le cœur de WordPress sur le formulaire de profil).
+        if ( ! isset( $_POST['mdnd_dnd_access_nonce'] )
+            || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mdnd_dnd_access_nonce'] ) ), 'mdnd_save_dnd_access' ) ) {
+            return;
+        }
+
         $user = get_userdata( $user_id );
         if ( ! $user ) {
             return;
         }
 
-        // On vérifie le nonce standard de WordPress pour la sauvegarde du profil (optionnel mais recommandé, ici on va s'appuyer sur la gestion des droits par défaut)
-        
         // Si la case est cochée, accorder la capability, sinon la retirer
         if ( isset( $_POST['dnd_access'] ) && '1' === $_POST['dnd_access'] ) {
             $user->add_cap( CAPABILITY );

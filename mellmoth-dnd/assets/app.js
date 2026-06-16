@@ -6,6 +6,22 @@
         return;
     }
 
+    // Échappe le HTML avant injection via innerHTML (prévention XSS stocké :
+    // les champs de la base de connaissances pourront à terme être saisis par les utilisateurs).
+    function escapeHtml(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // Description : échappée d'abord, puis les sauts de ligne littéraux "\n" deviennent des <br>.
+    function formatDescription(value) {
+        return escapeHtml(value).replace(/\\n/g, '<br>');
+    }
+
     // --- GESTION DES ONGLETS ---
     var tabs = root.querySelectorAll('.mdnd-tab');
     var panels = {
@@ -122,35 +138,35 @@
         function buildDetailContent(item, type) {
             if (type === 'spell') {
                 return `
-                    <h2>${item.name}</h2>
-                    <p class="mdnd-modal-subtitle"><em>${spellLevelLabel(item.level)} - ${item.school}</em></p>
+                    <h2>${escapeHtml(item.name)}</h2>
+                    <p class="mdnd-modal-subtitle"><em>${escapeHtml(spellLevelLabel(item.level))} - ${escapeHtml(item.school)}</em></p>
                     <div class="mdnd-modal-meta">
-                        <p><strong>Temps d'incantation :</strong> ${item.casting_time}</p>
-                        <p><strong>Portée :</strong> ${item.range_desc}</p>
-                        <p><strong>Composantes :</strong> ${item.components}</p>
+                        <p><strong>Temps d'incantation :</strong> ${escapeHtml(item.casting_time)}</p>
+                        <p><strong>Portée :</strong> ${escapeHtml(item.range_desc)}</p>
+                        <p><strong>Composantes :</strong> ${escapeHtml(item.components)}</p>
                     </div>
                     <div class="mdnd-modal-desc">
-                        <p>${item.description ? item.description.replace(/\\n/g, '<br>') : ''}</p>
+                        <p>${item.description ? formatDescription(item.description) : ''}</p>
                     </div>
                 `;
             }
 
             // equipment
             var propertiesHtml = '';
-            if (item.properties) propertiesHtml += `<p><strong>Propriétés :</strong> ${item.properties}</p>`;
-            if (item.damage_dice) propertiesHtml += `<p><strong>Dégâts :</strong> ${item.damage_dice} ${item.damage_type ? '('+item.damage_type+')' : ''}</p>`;
-            if (item.ac_bonus) propertiesHtml += `<p><strong>Bonus de CA :</strong> +${item.ac_bonus}</p>`;
+            if (item.properties) propertiesHtml += `<p><strong>Propriétés :</strong> ${escapeHtml(item.properties)}</p>`;
+            if (item.damage_dice) propertiesHtml += `<p><strong>Dégâts :</strong> ${escapeHtml(item.damage_dice)} ${item.damage_type ? '('+escapeHtml(item.damage_type)+')' : ''}</p>`;
+            if (item.ac_bonus) propertiesHtml += `<p><strong>Bonus de CA :</strong> +${escapeHtml(item.ac_bonus)}</p>`;
 
             return `
-                <h2>${item.name}</h2>
-                <p class="mdnd-modal-subtitle"><em>${item.type} - ${item.category} (${item.rarity})</em></p>
+                <h2>${escapeHtml(item.name)}</h2>
+                <p class="mdnd-modal-subtitle"><em>${escapeHtml(item.type)} - ${escapeHtml(item.category)} (${escapeHtml(item.rarity)})</em></p>
                 <div class="mdnd-modal-meta">
-                    <p><strong>Coût :</strong> ${item.cost ? item.cost + ' po' : '-'}</p>
-                    <p><strong>Poids :</strong> ${item.weight ? item.weight + ' kg' : '-'}</p>
+                    <p><strong>Coût :</strong> ${item.cost ? escapeHtml(item.cost) + ' po' : '-'}</p>
+                    <p><strong>Poids :</strong> ${item.weight ? escapeHtml(item.weight) + ' kg' : '-'}</p>
                     ${propertiesHtml}
                 </div>
                 <div class="mdnd-modal-desc">
-                    <p>${item.description ? item.description.replace(/\\n/g, '<br>') : '<em>Aucune description disponible.</em>'}</p>
+                    <p>${item.description ? formatDescription(item.description) : '<em>Aucune description disponible.</em>'}</p>
                 </div>
             `;
         }
@@ -160,22 +176,22 @@
             if (type === 'spell') {
                 var lvl = item.level === '0' || item.level === 0 ? 'tour de magie' : 'niv. ' + item.level;
                 return `
-                    <div class="mdnd-card-title">${item.name}</div>
-                    <div class="mdnd-card-sub">${item.school} (${lvl})</div>
+                    <div class="mdnd-card-title">${escapeHtml(item.name)}</div>
+                    <div class="mdnd-card-sub">${escapeHtml(item.school)} (${escapeHtml(lvl)})</div>
                     <div class="mdnd-card-meta">
-                        <span>Portée : ${item.range_desc || '–'}</span>
-                        <span>Incantation : ${item.casting_time || '–'}</span>
+                        <span>Portée : ${escapeHtml(item.range_desc || '–')}</span>
+                        <span>Incantation : ${escapeHtml(item.casting_time || '–')}</span>
                     </div>
                 `;
             }
 
             // equipment
             return `
-                <div class="mdnd-card-title">${item.name}</div>
-                <div class="mdnd-card-sub">${item.type} · ${item.category}</div>
+                <div class="mdnd-card-title">${escapeHtml(item.name)}</div>
+                <div class="mdnd-card-sub">${escapeHtml(item.type)} · ${escapeHtml(item.category)}</div>
                 <div class="mdnd-card-meta">
-                    <span>Coût : ${item.cost ? item.cost + ' po' : '–'}</span>
-                    <span>Poids : ${item.weight ? item.weight + ' kg' : '–'}</span>
+                    <span>Coût : ${item.cost ? escapeHtml(item.cost) + ' po' : '–'}</span>
+                    <span>Poids : ${item.weight ? escapeHtml(item.weight) + ' kg' : '–'}</span>
                 </div>
             `;
         }
