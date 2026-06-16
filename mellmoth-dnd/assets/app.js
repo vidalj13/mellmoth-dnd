@@ -77,6 +77,8 @@
     // --- GESTION DES TABLEAUX (Base de connaissances) ---
     if (typeof dndKnowledgeBase !== 'undefined') {
 
+        var sortState = { key: 'name', order: 'asc' };
+
         function renderTable(tbodyId, data, columns, type) {
             var tbody = document.getElementById(tbodyId);
             if (!tbody) return;
@@ -154,33 +156,65 @@
             });
         }
 
-        // --- SORTS ---
-        var spellsData = dndKnowledgeBase.spells || [];
-        var spellsColumns = ['name', 'level', 'school', 'casting_time', 'range_desc', 'components'];
-        
-        renderTable('spells-table-body', spellsData, spellsColumns, 'spell');
+        function sortData(data, key, order) {
+            return data.sort(function(a, b) {
+                var valA = a[key];
+                var valB = b[key];
 
-        var spellsSearch = document.getElementById('spells-search');
-        if (spellsSearch) {
-            spellsSearch.addEventListener('input', function(e) {
-                var filtered = filterData(spellsData, e.target.value, spellsColumns);
-                renderTable('spells-table-body', filtered, spellsColumns, 'spell');
+                if (typeof valA === 'number' && typeof valB === 'number') {
+                    return order === 'asc' ? valA - valB : valB - valA;
+                } else {
+                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
             });
         }
+
+        function setupTable(tableId, data, columns, type, searchId) {
+            var table = document.getElementById(tableId);
+            var tbodyId = table.querySelector('tbody').id;
+            var headers = table.querySelectorAll('th[data-sort]');
+            var searchInput = document.getElementById(searchId);
+
+            var currentData = data;
+
+            function redrawTable() {
+                var query = searchInput.value;
+                var filtered = filterData(currentData, query, columns);
+                var sorted = sortData(filtered, sortState.key, sortState.order);
+                renderTable(tbodyId, sorted, columns, type);
+            }
+
+            headers.forEach(function(th) {
+                th.addEventListener('click', function() {
+                    var sortKey = th.dataset.sort;
+                    if (sortState.key === sortKey) {
+                        sortState.order = sortState.order === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortState.key = sortKey;
+                        sortState.order = 'asc';
+                    }
+                    
+                    headers.forEach(function(header) {
+                        header.classList.remove('sort-asc', 'sort-desc');
+                    });
+                    th.classList.add('sort-' + sortState.order);
+
+                    redrawTable();
+                });
+            });
+
+            if (searchInput) {
+                searchInput.addEventListener('input', redrawTable);
+            }
+
+            redrawTable();
+        }
+
+        // --- SORTS ---
+        setupTable('spells-table', dndKnowledgeBase.spells || [], ['name', 'level', 'school', 'casting_time', 'range_desc', 'components'], 'spell', 'spells-search');
 
         // --- ÉQUIPEMENT ---
-        var equipmentData = dndKnowledgeBase.equipment || [];
-        var equipmentColumns = ['name', 'type', 'category', 'cost', 'weight'];
-        
-        renderTable('equipment-table-body', equipmentData, equipmentColumns, 'equipment');
-
-        var equipmentSearch = document.getElementById('equipment-search');
-        if (equipmentSearch) {
-            equipmentSearch.addEventListener('input', function(e) {
-                var filtered = filterData(equipmentData, e.target.value, equipmentColumns);
-                renderTable('equipment-table-body', filtered, equipmentColumns, 'equipment');
-            });
-        }
+        setupTable('equipment-table', dndKnowledgeBase.equipment || [], ['name', 'type', 'category', 'cost', 'weight'], 'equipment', 'equipment-search');
     }
 
     // --- GESTION DU LANCEUR DE DÉS ---
