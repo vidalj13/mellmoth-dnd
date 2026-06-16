@@ -213,3 +213,86 @@
     line-height: 1.6;
     white-space: pre-wrap; /* Pour respecter les retours à la ligne dans la description */
 }
+
+/* Lanceur de dés */
+.mdnd-dice-roller {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.mdnd-dice-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: #1f2937;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.mdnd-dice-controls label {
+    font-weight: 600;
+    color: #9ca3af;
+}
+
+.mdnd-input-number, .mdnd-select {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    border: 1px solid #374151;
+    background: #111827;
+    color: #e2e8f0;
+    border-radius: 4px;
+}
+
+.mdnd-button {
+    background-color: #3b82f6;
+    color: #fff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.mdnd-button:hover {
+    background-color: #2563eb;
+}
+
+.mdnd-dice-result {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    font-weight: bold;
+    color: #f8fafc;
+    background: #1f2937;
+    border-radius: 8px;
+    padding: 2rem;
+}
+
+.mdnd-dice-history {
+    grid-column: 1 / -1; /* Prend toute la largeur */
+    margin-top: 1rem;
+}
+
+.mdnd-history-output {
+    background: #1f2937;
+    padding: 1.5rem;
+    border-radius: 8px;
+    height: 200px;
+    overflow-y: auto;
+    border: 1px solid #374151;
+}
+
+.mdnd-history-output p {
+    margin: 0 0 0.5rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #374151;
+}
+
+.mdnd-history-output p:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}

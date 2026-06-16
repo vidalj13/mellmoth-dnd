@@ -12,7 +12,8 @@
         scenario: root.querySelector('#panel-scenario'),
         fiches: root.querySelector('#panel-fiches'),
         spells: root.querySelector('#panel-spells'),
-        equipment: root.querySelector('#panel-equipment')
+        equipment: root.querySelector('#panel-equipment'),
+        'dice-roller': root.querySelector('#panel-dice-roller') // Nouvel onglet
     };
 
     tabs.forEach(function (tab) {
@@ -46,16 +47,14 @@
         if (!modal || !modalBody) return;
         modalBody.innerHTML = content;
         modal.classList.add('is-active'); // Utilise la classe CSS
-        // Empêcher le défilement du corps de la page
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden'; // Empêcher le défilement du corps de la page
     }
 
     function closeModal() {
         if (!modal) return;
         modal.classList.remove('is-active'); // Utilise la classe CSS
         modalBody.innerHTML = '';
-        // Réactiver le défilement
-        document.body.style.overflow = '';
+        document.body.style.overflow = ''; // Réactiver le défilement
     }
 
     if (modalCloseBtn) {
@@ -63,16 +62,13 @@
     }
 
     if (modal) {
-        // Fermer au clic en dehors du contenu
         modal.addEventListener('click', function(event) {
             if (event.target === modal) {
                 closeModal();
             }
         });
-
-        // Fermer avec la touche Échap
         document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape' && modal.classList.contains('is-active')) { // Vérifie la classe
+            if (event.key === 'Escape' && modal.classList.contains('is-active')) {
                 closeModal();
             }
         });
@@ -84,9 +80,9 @@
         function renderTable(tbodyId, data, columns, type) {
             var tbody = document.getElementById(tbodyId);
             if (!tbody) return;
-
+            
             tbody.innerHTML = '';
-
+            
             if (!data || data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="' + columns.length + '" class="mdnd-empty-table">Aucune donnée trouvée.</td></tr>';
                 return;
@@ -95,10 +91,9 @@
             data.forEach(function(item) {
                 var tr = document.createElement('tr');
                 tr.style.cursor = 'pointer'; // Indique que la ligne est cliquable
-
+                
                 columns.forEach(function(col) {
                     var td = document.createElement('td');
-                    // Formatage spécial pour le niveau des sorts
                     if (col === 'level') {
                         td.textContent = item[col] === '0' || item[col] === 0 ? 'Tour de magie' : item[col];
                     } else {
@@ -106,8 +101,7 @@
                     }
                     tr.appendChild(td);
                 });
-
-                // Ajouter l'événement de clic pour ouvrir le popup
+                
                 tr.addEventListener('click', function() {
                     var content = '';
                     if (type === 'spell') {
@@ -145,7 +139,7 @@
                     }
                     openModal(content);
                 });
-
+                
                 tbody.appendChild(tr);
             });
         }
@@ -163,7 +157,7 @@
         // --- SORTS ---
         var spellsData = dndKnowledgeBase.spells || [];
         var spellsColumns = ['name', 'level', 'school', 'casting_time', 'range_desc', 'components'];
-
+        
         renderTable('spells-table-body', spellsData, spellsColumns, 'spell');
 
         var spellsSearch = document.getElementById('spells-search');
@@ -177,7 +171,7 @@
         // --- ÉQUIPEMENT ---
         var equipmentData = dndKnowledgeBase.equipment || [];
         var equipmentColumns = ['name', 'type', 'category', 'cost', 'weight'];
-
+        
         renderTable('equipment-table-body', equipmentData, equipmentColumns, 'equipment');
 
         var equipmentSearch = document.getElementById('equipment-search');
@@ -188,4 +182,47 @@
             });
         }
     }
+
+    // --- GESTION DU LANCEUR DE DÉS ---
+    var numDiceInput = document.getElementById('num-dice');
+    var dieTypeSelect = document.getElementById('die-type');
+    var modifierInput = document.getElementById('modifier');
+    var rollDiceBtn = document.getElementById('roll-dice-btn');
+    var rollResultSpan = document.getElementById('roll-result');
+    var rollHistoryDiv = document.getElementById('roll-history');
+
+    if (rollDiceBtn) {
+        rollDiceBtn.addEventListener('click', function() {
+            var numDice = parseInt(numDiceInput.value);
+            var dieType = parseInt(dieTypeSelect.value);
+            var modifier = parseInt(modifierInput.value);
+
+            var rolls = [];
+            var total = 0;
+
+            for (var i = 0; i < numDice; i++) {
+                var roll = Math.floor(Math.random() * dieType) + 1;
+                rolls.push(roll);
+                total += roll;
+            }
+
+            var finalResult = total + modifier;
+            rollResultSpan.textContent = finalResult;
+
+            // Ajout à l'historique
+            var historyEntry = document.createElement('p');
+            var rollDetails = rolls.join(' + ');
+            var modifierText = modifier !== 0 ? (modifier > 0 ? ' + ' + modifier : ' - ' + Math.abs(modifier)) : '';
+            
+            historyEntry.innerHTML = `<strong>${finalResult}</strong> = ${numDice}d${dieType} (${rollDetails})${modifierText}`;
+            
+            // Ajoute en haut de l'historique
+            if (rollHistoryDiv.firstChild) {
+                rollHistoryDiv.insertBefore(historyEntry, rollHistoryDiv.firstChild);
+            } else {
+                rollHistoryDiv.appendChild(historyEntry);
+            }
+        });
+    }
+
 })();

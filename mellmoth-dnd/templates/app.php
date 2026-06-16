@@ -36,6 +36,10 @@ $current_user = wp_get_current_user();
                 data-panel="equipment" aria-controls="panel-equipment" aria-selected="false">
             Équipement
         </button>
+        <button type="button" class="mdnd-tab" role="tab"
+                data-panel="dice-roller" aria-controls="panel-dice-roller" aria-selected="false">
+            Lanceur de dés
+        </button>
     </nav>
 
     <section class="mdnd-panel is-active" id="panel-scenario" role="tabpanel">
@@ -88,6 +92,42 @@ $current_user = wp_get_current_user();
                     <!-- Contenu généré par JS -->
                 </tbody>
             </table>
+        </div>
+    </section>
+
+    <section class="mdnd-panel" id="panel-dice-roller" role="tabpanel" hidden>
+        <div class="mdnd-dice-roller">
+            <div class="mdnd-dice-controls">
+                <label for="num-dice">Nombre de dés :</label>
+                <input type="number" id="num-dice" value="1" min="1" max="10" class="mdnd-input-number">
+
+                <label for="die-type">Type de dé :</label>
+                <select id="die-type" class="mdnd-select">
+                    <option value="4">4</option>
+                    <option value="6">6</option>
+                    <option value="8">8</option>
+                    <option value="10">10</option>
+                    <option value="12">12</option>
+                    <option value="20" selected>20</option>
+                    <option value="100">100</option>
+                </select>
+
+                <label for="modifier">Modificateur :</label>
+                <input type="number" id="modifier" value="0" class="mdnd-input-number">
+
+                <button id="roll-dice-btn" class="mdnd-button">Lancer !</button>
+            </div>
+
+            <div class="mdnd-dice-result">
+                <span id="roll-result">0</span>
+            </div>
+
+            <div class="mdnd-dice-history">
+                <h3>Historique des lancers :</h3>
+                <div id="roll-history" class="mdnd-history-output">
+                    <!-- L'historique sera injecté ici -->
+                </div>
+            </div>
         </div>
     </section>
 
