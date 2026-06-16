@@ -3,8 +3,9 @@
  */
 
 .mellmoth-dnd-hub {
-    max-width: 1200px;
-    margin: 2rem auto;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 2rem 0;
     font-family: system-ui, -apple-system, sans-serif;
     color: #e2e8f0;
     background: #111827;

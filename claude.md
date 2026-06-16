@@ -1,7 +1,7 @@
 # Mellmoth Forge — Hub D&D · Base de connaissances
 
 > Document de référence du projet « espace de jeu D&D réservé aux membres » sur le site Mellmoth Forge.
-> Établi le 16/06/2026 · Plugin `mellmoth-dnd` v0.1.3 (Inc. 1.1).
+> Établi le 16/06/2026 · Plugin `mellmoth-dnd` v0.1.6 (Inc. 1.1).
 
 -----
 
@@ -139,6 +139,18 @@ L'attribution du droit d'accès au Hub se fait désormais directement depuis l'i
 -----
 
 ## 6. Workflow de déploiement (staging-first)
+
+### Procédure de build (norme — à chaque livraison d'asset/code)
+
+1. **Bump de version** aux **deux** endroits de `mellmoth-dnd/mellmoth-dnd.php` (en-tête `Version:` *et* `const VERSION`) + le marqueur de version en tête de ce `claude.md`. Patch (`0.1.x`) pour un correctif/ajustement UI, mineur pour une fonctionnalité. La constante `VERSION` sert aussi de cache-buster aux assets (`wp_enqueue_*`) : sans bump, le navigateur garde l'ancien `app.css`/`app.js`.
+2. **Générer `<version>.zip`** à la racine du repo, contenant le dossier `mellmoth-dnd/`.
+   - **Séparateurs `/`** obligatoires dans les chemins (le spec ZIP l'exige ; `Compress-Archive` de PowerShell met des `\` → extraction WordPress peu fiable). Construire l'archive via `System.IO.Compression.ZipFile` en remplaçant `\` par `/`.
+   - **Exclure** `.idea/` (et tout dossier d'outillage IDE) : ça n'a pas sa place dans un plugin distribué.
+3. Uploader le `.zip` sur le **staging** (jamais la prod en premier).
+
+> Le `.zip` est l'artefact de livraison. Les `<version>.zip` précédents sont conservés à la racine du repo comme historique.
+
+### Mise en ligne (staging-first)
 
 1. **Ne jamais tester du code non validé sur la prod** (boutique live avec commandes WooCommerce réelles).
 1. Cloner la prod vers le **site de staging** (tableau de bord d’hébergement WordPress.com — pas le wp-admin).

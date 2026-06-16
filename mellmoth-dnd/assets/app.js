@@ -16,25 +16,53 @@
         'dice-roller': root.querySelector('#panel-dice-roller') // Nouvel onglet
     };
 
+    // --- ÉTAT DANS L'URL ---
+    // Hash = `#onglet` ou `#onglet/idItem`. Permet de conserver l'onglet (et la modale
+    // ouverte) après un F5 et de partager un lien direct.
+    var openKbItem = null; // Assigné plus bas, une fois les données KB disponibles.
+
+    function getActiveTab() {
+        var active = root.querySelector('.mdnd-tab.is-active');
+        return active ? active.dataset.panel : null;
+    }
+
+    // Met à jour le hash sans empiler d'entrée d'historique ni provoquer de scroll.
+    function setHash(value) {
+        var newHash = '#' + value;
+        if (location.hash !== newHash) {
+            history.replaceState(null, '', newHash);
+        }
+    }
+
+    function activateTab(target) {
+        if (!panels[target]) {
+            return false; // Onglet inconnu : on ne touche à rien.
+        }
+
+        tabs.forEach(function (t) {
+            var isTarget = (t.dataset.panel === target);
+            t.classList.toggle('is-active', isTarget);
+            t.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+        });
+
+        Object.keys(panels).forEach(function (key) {
+            var panel = panels[key];
+            if (!panel) {
+                return;
+            }
+            var active = (key === target);
+            panel.classList.toggle('is-active', active);
+            panel.hidden = !active;
+        });
+
+        return true;
+    }
+
     tabs.forEach(function (tab) {
         tab.addEventListener('click', function () {
-            tabs.forEach(function (t) {
-                t.classList.remove('is-active');
-                t.setAttribute('aria-selected', 'false');
-            });
-            tab.classList.add('is-active');
-            tab.setAttribute('aria-selected', 'true');
-
             var target = tab.dataset.panel;
-            Object.keys(panels).forEach(function (key) {
-                var panel = panels[key];
-                if (!panel) {
-                    return;
-                }
-                var active = (key === target);
-                panel.classList.toggle('is-active', active);
-                panel.hidden = !active;
-            });
+            activateTab(target);
+            setHash(target); // L'URL reflète l'onglet courant.
         });
     });
 
@@ -55,6 +83,12 @@
         modal.classList.remove('is-active'); // Utilise la classe CSS
         modalBody.innerHTML = '';
         document.body.style.overflow = ''; // Réactiver le défilement
+
+        // Le hash ne pointe plus vers un élément : on revient à l'onglet seul.
+        var tab = getActiveTab();
+        if (tab) {
+            setHash(tab);
+        }
     }
 
     if (modalCloseBtn) {
@@ -151,6 +185,7 @@
             if (!tbody) return;
 
             var cardsContainer = document.getElementById(tbodyId.replace('-table-body', '-cards'));
+            var tabKey = tbodyId.replace('-table-body', ''); // 'spells' / 'equipment' (= clé d'onglet pour le hash).
 
             tbody.innerHTML = '';
             if (cardsContainer) cardsContainer.innerHTML = '';
@@ -182,6 +217,7 @@
 
                 tr.addEventListener('click', function() {
                     openModal(content);
+                    setHash(tabKey + '/' + item.id);
                 });
 
                 tbody.appendChild(tr);
@@ -193,6 +229,7 @@
                     card.innerHTML = buildCardSummary(item, type);
                     card.addEventListener('click', function() {
                         openModal(content);
+                        setHash(tabKey + '/' + item.id);
                     });
                     cardsContainer.appendChild(card);
                 }
@@ -263,6 +300,24 @@
             redrawTable();
         }
 
+        // Ouvre la modale d'un élément depuis son onglet + son id (restauration via l'URL).
+        openKbItem = function(tabKey, id) {
+            var type, list;
+            if (tabKey === 'spells') {
+                type = 'spell';
+                list = dndKnowledgeBase.spells || [];
+            } else if (tabKey === 'equipment') {
+                type = 'equipment';
+                list = dndKnowledgeBase.equipment || [];
+            } else {
+                return;
+            }
+            var item = list.filter(function(it) { return String(it.id) === String(id); })[0];
+            if (item) {
+                openModal(buildDetailContent(item, type));
+            }
+        };
+
         // --- SORTS ---
         setupTable('spells-table', dndKnowledgeBase.spells || [], ['name', 'level', 'school', 'casting_time', 'range_desc', 'components'], 'spell', 'spells-search');
 
@@ -311,5 +366,24 @@
             }
         });
     }
+
+    // --- RESTAURATION DEPUIS L'URL (au chargement / F5) ---
+    // Hash attendu : `#onglet` ou `#onglet/idItem`.
+    (function routeFromHash() {
+        var raw = (location.hash || '').replace(/^#/, '');
+        if (!raw) {
+            return; // Pas de hash : onglet par défaut du HTML.
+        }
+        var parts = raw.split('/');
+        var tab = parts[0];
+        var itemId = parts[1];
+
+        if (!activateTab(tab)) {
+            return; // Hash invalide : on garde l'onglet par défaut.
+        }
+        if (itemId && openKbItem) {
+            openKbItem(tab, itemId);
+        }
+    })();
 
 })();
