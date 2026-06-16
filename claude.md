@@ -1,7 +1,7 @@
 # Mellmoth Forge — Hub D&D · Base de connaissances
 
 > Document de référence du projet « espace de jeu D&D réservé aux membres » sur le site Mellmoth Forge.
-> Établi le 16/06/2026 · Plugin `mellmoth-dnd` v0.1.1 (Inc. 1.1).
+> Établi le 16/06/2026 · Plugin `mellmoth-dnd` v0.1.3 (Inc. 1.1).
 
 -----
 
@@ -40,7 +40,21 @@ C’est le point qui conditionne toute la faisabilité. Vérifié directement su
 - **API :** namespace REST (`mellmoth-dnd/v1`) avec `permission_callback` (autorisation vérifiée **côté serveur**, jamais sur le seul masquage d’UI).
 - **Front :** PHP server-rendered pour le shell ; bascule vers une **SPA React** quand le vrai interactif (CRUD) arrivera.
 - **Auth :** réutilisation native des comptes WordPress/WooCommerce existants + **capabilities** WordPress pour le contrôle d’accès (RBAC intégré, gratuit).
+- **Responsive : norme du projet** (voir convention ci-dessous). Toute UI livrée doit être utilisable sur mobile/tablette, pas seulement desktop.
 - **Méthode :** **agile**, par tranches verticales livrables (walking skeleton puis incréments fonctionnels).
+
+### Convention responsive (norme — à respecter pour toute nouvelle UI)
+
+Le hub doit fonctionner sur mobile et tablette (le site tourne sur WordPress.com, trafic mobile attendu). Règles en vigueur :
+
+- **Breakpoints standard du plugin :**
+  - `max-width: 900px` → bascule des **tableaux denses en cartes** (les tableaux à nombreuses colonnes débordent dès le paysage ~860px).
+  - `max-width: 640px` → adaptations mobile générales (grilles en 1 colonne, `flex-wrap` sur la navigation, paddings réduits).
+- **Pas de scroll horizontal** comme solution finale : un tableau qui déborde doit avoir une **vue carte** dédiée (résumé compact des champs clés), pas juste un `overflow-x: auto`.
+- **Vue carte ≠ transformation CSS du tableau :** les cartes sont un rendu compact **généré en JS** à côté du tableau (`.mdnd-kb-cards`). Tableau affiché en desktop, cartes en mobile, via `display` dans les media queries. Le contenu détaillé reste accessible via la **modale** partagée (`buildDetailContent`), réutilisée par la ligne et la carte.
+- **Viewport :** géré par le thème (balise `<meta name="viewport">` confirmée présente). Le plugin ne l'ajoute pas.
+- **Cache-busting :** la constante `VERSION` versionne `app.css`/`app.js` (`wp_enqueue_*`). **Incrémenter la version à chaque modif d'asset** pour éviter le cache navigateur sur staging/prod.
+- **Pas de bandeau superflu :** l'en-tête « titre + Bienvenue » a été retiré ; la navigation par onglets sert de point d'entrée. Garder l'UI sobre.
 
 ### Correspondance des concepts (repère pour un profil .NET / Kotlin)
 
@@ -77,10 +91,10 @@ mellmoth-dnd/
 │   ├── class-menu.php          # ajoute l'entrée de menu si autorisé
 │   └── class-admin-users.php   # UI back-office pour attribuer l'accès par utilisateur
 ├── templates/
-│   └── app.php                 # la page + nav 2 onglets
+│   └── app.php                 # la page : nav par onglets + tableaux (sorts/équipement) + cartes mobile + lanceur de dés
 └── assets/
-    ├── app.css                 # style des onglets
-    └── app.js                  # bascule d'onglets (vanilla, pas de build)
+    ├── app.css                 # styles : onglets, tableaux, cartes responsive, modale, dés
+    └── app.js                  # onglets, rendu tableaux/cartes, tri/recherche, modale, dés (vanilla, pas de build)
 ```
 
 > ⚠️ L’arborescence doit être préservée : le code fait des `require` vers `includes/`, `templates/`, `assets/`.

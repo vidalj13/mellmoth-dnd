@@ -79,21 +79,97 @@
 
         var sortState = { key: 'name', order: 'asc' };
 
+        // Étiquette de niveau d'un sort (0 = tour de magie).
+        function spellLevelLabel(level) {
+            return level === '0' || level === 0 ? 'Tour de magie' : 'Niveau ' + level;
+        }
+
+        // Contenu complet affiché dans la modale de détail (ligne ET carte).
+        function buildDetailContent(item, type) {
+            if (type === 'spell') {
+                return `
+                    <h2>${item.name}</h2>
+                    <p class="mdnd-modal-subtitle"><em>${spellLevelLabel(item.level)} - ${item.school}</em></p>
+                    <div class="mdnd-modal-meta">
+                        <p><strong>Temps d'incantation :</strong> ${item.casting_time}</p>
+                        <p><strong>Portée :</strong> ${item.range_desc}</p>
+                        <p><strong>Composantes :</strong> ${item.components}</p>
+                    </div>
+                    <div class="mdnd-modal-desc">
+                        <p>${item.description ? item.description.replace(/\\n/g, '<br>') : ''}</p>
+                    </div>
+                `;
+            }
+
+            // equipment
+            var propertiesHtml = '';
+            if (item.properties) propertiesHtml += `<p><strong>Propriétés :</strong> ${item.properties}</p>`;
+            if (item.damage_dice) propertiesHtml += `<p><strong>Dégâts :</strong> ${item.damage_dice} ${item.damage_type ? '('+item.damage_type+')' : ''}</p>`;
+            if (item.ac_bonus) propertiesHtml += `<p><strong>Bonus de CA :</strong> +${item.ac_bonus}</p>`;
+
+            return `
+                <h2>${item.name}</h2>
+                <p class="mdnd-modal-subtitle"><em>${item.type} - ${item.category} (${item.rarity})</em></p>
+                <div class="mdnd-modal-meta">
+                    <p><strong>Coût :</strong> ${item.cost ? item.cost + ' po' : '-'}</p>
+                    <p><strong>Poids :</strong> ${item.weight ? item.weight + ' kg' : '-'}</p>
+                    ${propertiesHtml}
+                </div>
+                <div class="mdnd-modal-desc">
+                    <p>${item.description ? item.description.replace(/\\n/g, '<br>') : '<em>Aucune description disponible.</em>'}</p>
+                </div>
+            `;
+        }
+
+        // Résumé compact affiché en carte sur mobile.
+        function buildCardSummary(item, type) {
+            if (type === 'spell') {
+                var lvl = item.level === '0' || item.level === 0 ? 'tour de magie' : 'niv. ' + item.level;
+                return `
+                    <div class="mdnd-card-title">${item.name}</div>
+                    <div class="mdnd-card-sub">${item.school} (${lvl})</div>
+                    <div class="mdnd-card-meta">
+                        <span>Portée : ${item.range_desc || '–'}</span>
+                        <span>Incantation : ${item.casting_time || '–'}</span>
+                    </div>
+                `;
+            }
+
+            // equipment
+            return `
+                <div class="mdnd-card-title">${item.name}</div>
+                <div class="mdnd-card-sub">${item.type} · ${item.category}</div>
+                <div class="mdnd-card-meta">
+                    <span>Coût : ${item.cost ? item.cost + ' po' : '–'}</span>
+                    <span>Poids : ${item.weight ? item.weight + ' kg' : '–'}</span>
+                </div>
+            `;
+        }
+
         function renderTable(tbodyId, data, columns, type) {
             var tbody = document.getElementById(tbodyId);
             if (!tbody) return;
-            
+
+            var cardsContainer = document.getElementById(tbodyId.replace('-table-body', '-cards'));
+
             tbody.innerHTML = '';
-            
+            if (cardsContainer) cardsContainer.innerHTML = '';
+
             if (!data || data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="' + columns.length + '" class="mdnd-empty-table">Aucune donnée trouvée.</td></tr>';
+                if (cardsContainer) {
+                    cardsContainer.innerHTML = '<p class="mdnd-empty-table">Aucune donnée trouvée.</p>';
+                }
                 return;
             }
 
             data.forEach(function(item) {
+                var content = buildDetailContent(item, type);
+
+                // Ligne de tableau (desktop).
                 var tr = document.createElement('tr');
                 tr.style.cursor = 'pointer'; // Indique que la ligne est cliquable
-                
+
                 columns.forEach(function(col) {
                     var td = document.createElement('td');
                     if (col === 'level') {
@@ -103,46 +179,23 @@
                     }
                     tr.appendChild(td);
                 });
-                
-                tr.addEventListener('click', function() {
-                    var content = '';
-                    if (type === 'spell') {
-                        var levelText = item.level === '0' || item.level === 0 ? 'Tour de magie' : 'Niveau ' + item.level;
-                        content = `
-                            <h2>${item.name}</h2>
-                            <p class="mdnd-modal-subtitle"><em>${levelText} - ${item.school}</em></p>
-                            <div class="mdnd-modal-meta">
-                                <p><strong>Temps d'incantation :</strong> ${item.casting_time}</p>
-                                <p><strong>Portée :</strong> ${item.range_desc}</p>
-                                <p><strong>Composantes :</strong> ${item.components}</p>
-                            </div>
-                            <div class="mdnd-modal-desc">
-                                <p>${item.description ? item.description.replace(/\\n/g, '<br>') : ''}</p>
-                            </div>
-                        `;
-                    } else if (type === 'equipment') {
-                        var propertiesHtml = '';
-                        if (item.properties) propertiesHtml += `<p><strong>Propriétés :</strong> ${item.properties}</p>`;
-                        if (item.damage_dice) propertiesHtml += `<p><strong>Dégâts :</strong> ${item.damage_dice} ${item.damage_type ? '('+item.damage_type+')' : ''}</p>`;
-                        if (item.ac_bonus) propertiesHtml += `<p><strong>Bonus de CA :</strong> +${item.ac_bonus}</p>`;
 
-                        content = `
-                            <h2>${item.name}</h2>
-                            <p class="mdnd-modal-subtitle"><em>${item.type} - ${item.category} (${item.rarity})</em></p>
-                            <div class="mdnd-modal-meta">
-                                <p><strong>Coût :</strong> ${item.cost ? item.cost + ' po' : '-'}</p>
-                                <p><strong>Poids :</strong> ${item.weight ? item.weight + ' kg' : '-'}</p>
-                                ${propertiesHtml}
-                            </div>
-                            <div class="mdnd-modal-desc">
-                                <p>${item.description ? item.description.replace(/\\n/g, '<br>') : '<em>Aucune description disponible.</em>'}</p>
-                            </div>
-                        `;
-                    }
+                tr.addEventListener('click', function() {
                     openModal(content);
                 });
-                
+
                 tbody.appendChild(tr);
+
+                // Carte compacte (mobile).
+                if (cardsContainer) {
+                    var card = document.createElement('div');
+                    card.className = 'mdnd-kb-card';
+                    card.innerHTML = buildCardSummary(item, type);
+                    card.addEventListener('click', function() {
+                        openModal(content);
+                    });
+                    cardsContainer.appendChild(card);
+                }
             });
         }
 

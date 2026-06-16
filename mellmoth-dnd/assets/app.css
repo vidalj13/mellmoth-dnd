@@ -13,23 +13,6 @@
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.mdnd-header {
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #374151;
-}
-
-.mdnd-header h1 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.875rem;
-    color: #f8fafc;
-}
-
-.mdnd-greeting {
-    margin: 0;
-    color: #9ca3af;
-}
-
 .mdnd-tabs {
     display: flex;
     gap: 0.5rem;
@@ -159,6 +142,48 @@
     padding: 2rem !important;
     color: #9ca3af;
     font-style: italic;
+}
+
+/* Cartes compactes (affichées sur mobile à la place du tableau) */
+.mdnd-kb-cards {
+    display: none;
+}
+
+.mdnd-kb-card {
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.mdnd-kb-card:hover {
+    background: #374151;
+}
+
+.mdnd-card-title {
+    font-weight: 600;
+    color: #f8fafc;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+}
+
+.mdnd-card-sub {
+    color: #3b82f6;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.5rem;
+}
+
+.mdnd-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    color: #9ca3af;
+    font-size: 0.9rem;
 }
 
 /* Modal de détails */
@@ -322,4 +347,36 @@
 .mdnd-history-output p:last-child {
     border-bottom: none;
     margin-bottom: 0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .mellmoth-dnd-hub {
+        padding: 1rem;
+        margin: 1rem auto;
+    }
+
+    .mdnd-tabs {
+        flex-wrap: wrap;
+    }
+
+    .mdnd-dice-roller {
+        grid-template-columns: 1fr;
+    }
+
+    .mdnd-dice-result {
+        font-size: 2.5rem;
+        padding: 1.5rem;
+    }
+}
+
+/* Tableaux : bascule en cartes plus tôt (6 colonnes débordent vite, ex. paysage 860px). */
+@media (max-width: 900px) {
+    .mdnd-kb-table-wrapper {
+        display: none;
+    }
+
+    .mdnd-kb-cards {
+        display: block;
+    }
 }

@@ -7,17 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 get_header();
-
-$current_user = wp_get_current_user();
 ?>
 <main class="mellmoth-dnd-hub" id="mellmoth-dnd-hub">
-
-    <header class="mdnd-header">
-        <h1><?php echo esc_html( MENU_LABEL ); ?></h1>
-        <p class="mdnd-greeting">
-            <?php echo esc_html( sprintf( 'Bienvenue, %s.', $current_user->display_name ) ); ?>
-        </p>
-    </header>
 
     <nav class="mdnd-tabs" role="tablist" aria-label="Navigation du hub">
         <button type="button" class="mdnd-tab is-active" role="tab"
@@ -71,6 +62,9 @@ $current_user = wp_get_current_user();
                 </tbody>
             </table>
         </div>
+        <div class="mdnd-kb-cards" id="spells-cards">
+            <!-- Cartes compactes (mobile) générées par JS -->
+        </div>
     </section>
 
     <section class="mdnd-panel" id="panel-equipment" role="tabpanel" hidden>
@@ -92,6 +86,9 @@ $current_user = wp_get_current_user();
                     <!-- Contenu généré par JS -->
                 </tbody>
             </table>
+        </div>
+        <div class="mdnd-kb-cards" id="equipment-cards">
+            <!-- Cartes compactes (mobile) générées par JS -->
         </div>
     </section>
 
