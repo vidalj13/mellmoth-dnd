@@ -133,3 +133,83 @@
     color: #9ca3af;
     font-style: italic;
 }
+
+/* Modal de détails */
+.mdnd-modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: none; /* Masqué par défaut */
+    align-items: center;
+    justify-content: center;
+}
+
+.mdnd-modal.is-active {
+    display: flex; /* Affiché quand la classe est présente */
+}
+
+.mdnd-modal-content {
+    background-color: #1f2937;
+    margin: auto;
+    padding: 2rem;
+    border: 1px solid #374151;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    color: #e2e8f0;
+}
+
+.mdnd-modal-close {
+    color: #9ca3af;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+.mdnd-modal-close:hover,
+.mdnd-modal-close:focus {
+    color: #f8fafc;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.mdnd-modal-body h2 {
+    color: #f8fafc;
+    font-size: 1.75rem;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+
+.mdnd-modal-subtitle {
+    color: #9ca3af;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.mdnd-modal-meta p {
+    margin: 0.25rem 0;
+}
+
+.mdnd-modal-meta {
+    border-top: 1px solid #374151;
+    border-bottom: 1px solid #374151;
+    padding: 1rem 0;
+    margin: 1rem 0;
+}
+
+.mdnd-modal-desc p {
+    line-height: 1.6;
+    white-space: pre-wrap; /* Pour respecter les retours à la ligne dans la description */
+}

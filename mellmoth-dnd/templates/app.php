@@ -92,5 +92,16 @@ $current_user = wp_get_current_user();
     </section>
 
 </main>
+
+<!-- Popup de détails -->
+<div id="mdnd-detail-modal" class="mdnd-modal">
+    <div class="mdnd-modal-content">
+        <button class="mdnd-modal-close">&times;</button>
+        <div id="mdnd-modal-body">
+            <!-- Les détails seront injectés ici par JS -->
+        </div>
+    </div>
+</div>
+
 <?php
 get_footer();
