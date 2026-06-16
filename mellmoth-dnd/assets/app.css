@@ -1,0 +1,45 @@
+.mellmoth-dnd-hub {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.mdnd-header {
+    margin-bottom: 1.5rem;
+}
+
+.mdnd-greeting {
+    margin-top: .25rem;
+    opacity: .7;
+}
+
+.mdnd-tabs {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, .12);
+}
+
+.mdnd-tab {
+    padding: .75rem 1rem;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    font: inherit;
+    opacity: .6;
+    cursor: pointer;
+}
+
+.mdnd-tab.is-active {
+    font-weight: 600;
+    opacity: 1;
+    border-bottom-color: currentColor;
+}
+
+.mdnd-panel {
+    display: none;
+}
+
+.mdnd-panel.is-active {
+    display: block;
+}
