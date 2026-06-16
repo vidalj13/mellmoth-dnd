@@ -9,7 +9,9 @@
     var tabs = root.querySelectorAll('.mdnd-tab');
     var panels = {
         scenario: root.querySelector('#panel-scenario'),
-        fiches: root.querySelector('#panel-fiches')
+        fiches: root.querySelector('#panel-fiches'),
+        spells: root.querySelector('#panel-spells'),
+        equipment: root.querySelector('#panel-equipment')
     };
 
     tabs.forEach(function (tab) {

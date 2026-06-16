@@ -29,7 +29,8 @@ define( __NAMESPACE__ . '\\URL', plugin_dir_url( __FILE__ ) );
 require_once PATH . 'includes/class-capabilities.php';
 require_once PATH . 'includes/class-router.php';
 require_once PATH . 'includes/class-menu.php';
-require_once PATH . 'includes/class-admin-users.php'; // Nouvel import
+require_once PATH . 'includes/class-admin-users.php';
+require_once PATH . 'includes/class-knowledge-base.php'; // Nouvel import pour la base de connaissances
 
 /* -------------------------------------------------------------------------
  *  Activation / desactivation
@@ -37,6 +38,7 @@ require_once PATH . 'includes/class-admin-users.php'; // Nouvel import
 register_activation_hook( __FILE__, static function (): void {
     Capabilities::grant();
     Router::register_rewrite();
+    \Mellmoth_Dnd_Knowledge_Base::on_activation(); // Création des tables de base de données
     flush_rewrite_rules(); // Pour que /table-de-jeu reponde immediatement.
 } );
 
@@ -54,6 +56,4 @@ add_action( 'wp_enqueue_scripts', [ Router::class, 'maybe_enqueue_assets' ] );
 add_filter( 'wp_nav_menu_items', [ Menu::class, 'maybe_add_item' ], 10, 2 );
 
 // Initialisation de l'administration des utilisateurs
-// Attention : is_admin() peut renvoyer false lors de l'appel de hooks asynchrones,
-// il est préférable de l'attacher à 'admin_init' ou de toujours l'appeler.
 AdminUsers::init();
