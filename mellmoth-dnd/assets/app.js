@@ -22,14 +22,17 @@
         return escapeHtml(value).replace(/\\n/g, '<br>');
     }
 
+    // Badge "perso" pour distinguer les entrées custom de l'utilisateur des entrées de référence.
+    function userBadge(item) {
+        return String(item.source) === 'user' ? ' <span class="mdnd-badge">perso</span>' : '';
+    }
+
     // --- GESTION DES ONGLETS ---
     var tabs = root.querySelectorAll('.mdnd-tab');
     var panels = {
-        scenario: root.querySelector('#panel-scenario'),
-        fiches: root.querySelector('#panel-fiches'),
         spells: root.querySelector('#panel-spells'),
         equipment: root.querySelector('#panel-equipment'),
-        'dice-roller': root.querySelector('#panel-dice-roller') // Nouvel onglet
+        'dice-roller': root.querySelector('#panel-dice-roller')
     };
 
     // --- ÉTAT DANS L'URL ---
@@ -151,11 +154,10 @@
                 `;
             }
 
-            // equipment
-            var propertiesHtml = '';
-            if (item.properties) propertiesHtml += `<p><strong>Propriétés :</strong> ${escapeHtml(item.properties)}</p>`;
-            if (item.damage_dice) propertiesHtml += `<p><strong>Dégâts :</strong> ${escapeHtml(item.damage_dice)} ${item.damage_type ? '('+escapeHtml(item.damage_type)+')' : ''}</p>`;
-            if (item.ac_bonus) propertiesHtml += `<p><strong>Bonus de CA :</strong> +${escapeHtml(item.ac_bonus)}</p>`;
+            // equipment — stats de combat dans le bloc meta, propriétés dans leur propre bloc au-dessus de la description.
+            var statsHtml = '';
+            if (item.damage_dice) statsHtml += `<p><strong>Dégâts :</strong> ${escapeHtml(item.damage_dice)} ${item.damage_type ? '('+escapeHtml(item.damage_type)+')' : ''}</p>`;
+            if (item.ac_bonus) statsHtml += `<p><strong>Bonus de CA :</strong> +${escapeHtml(item.ac_bonus)}</p>`;
 
             return `
                 <h2>${escapeHtml(item.name)}</h2>
@@ -163,7 +165,10 @@
                 <div class="mdnd-modal-meta">
                     <p><strong>Coût :</strong> ${item.cost ? escapeHtml(item.cost) + ' po' : '-'}</p>
                     <p><strong>Poids :</strong> ${item.weight ? escapeHtml(item.weight) + ' kg' : '-'}</p>
-                    ${propertiesHtml}
+                    ${statsHtml}
+                </div>
+                <div class="mdnd-modal-props">
+                    <p><strong>Propriétés :</strong> ${item.properties ? escapeHtml(item.properties) : '–'}</p>
                 </div>
                 <div class="mdnd-modal-desc">
                     <p>${item.description ? formatDescription(item.description) : '<em>Aucune description disponible.</em>'}</p>
@@ -176,7 +181,7 @@
             if (type === 'spell') {
                 var lvl = item.level === '0' || item.level === 0 ? 'tour de magie' : 'niv. ' + item.level;
                 return `
-                    <div class="mdnd-card-title">${escapeHtml(item.name)}</div>
+                    <div class="mdnd-card-title">${escapeHtml(item.name)}${userBadge(item)}</div>
                     <div class="mdnd-card-sub">${escapeHtml(item.school)} (${escapeHtml(lvl)})</div>
                     <div class="mdnd-card-meta">
                         <span>Portée : ${escapeHtml(item.range_desc || '–')}</span>
@@ -187,7 +192,7 @@
 
             // equipment
             return `
-                <div class="mdnd-card-title">${escapeHtml(item.name)}</div>
+                <div class="mdnd-card-title">${escapeHtml(item.name)}${userBadge(item)}</div>
                 <div class="mdnd-card-sub">${escapeHtml(item.type)} · ${escapeHtml(item.category)}</div>
                 <div class="mdnd-card-meta">
                     <span>Coût : ${item.cost ? escapeHtml(item.cost) + ' po' : '–'}</span>
@@ -196,12 +201,37 @@
             `;
         }
 
+        // État : référence commune (lecture seule) + entrées perso de l'utilisateur (éditables).
+        var datasets = {
+            spells: (dndKnowledgeBase.spells || []).concat(dndKnowledgeBase.userSpells || []),
+            equipment: (dndKnowledgeBase.equipment || []).concat(dndKnowledgeBase.userEquipment || [])
+        };
+        var redrawers = {}; // tabKey -> fonction de redraw (pour rafraîchir après une mutation).
+        var rest = dndKnowledgeBase.rest || {};
+
+        // Appel REST authentifié (cookie + nonce). Renvoie une promesse résolue avec le JSON.
+        function apiFetch(path, method, body) {
+            return fetch(rest.root + path, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': rest.nonce },
+                credentials: 'same-origin',
+                body: body ? JSON.stringify(body) : undefined
+            }).then(function(res) {
+                return res.json().then(function(data) {
+                    if (!res.ok) {
+                        throw new Error(data && data.message ? data.message : 'Erreur serveur');
+                    }
+                    return data;
+                });
+            });
+        }
+
         function renderTable(tbodyId, data, columns, type) {
             var tbody = document.getElementById(tbodyId);
             if (!tbody) return;
 
             var cardsContainer = document.getElementById(tbodyId.replace('-table-body', '-cards'));
-            var tabKey = tbodyId.replace('-table-body', ''); // 'spells' / 'equipment' (= clé d'onglet pour le hash).
+            var tabKey = tbodyId.replace('-table-body', ''); // 'spells' / 'equipment'.
 
             tbody.innerHTML = '';
             if (cardsContainer) cardsContainer.innerHTML = '';
@@ -215,25 +245,26 @@
             }
 
             data.forEach(function(item) {
-                var content = buildDetailContent(item, type);
-
                 // Ligne de tableau (desktop).
                 var tr = document.createElement('tr');
-                tr.style.cursor = 'pointer'; // Indique que la ligne est cliquable
+                tr.style.cursor = 'pointer';
 
-                columns.forEach(function(col) {
+                columns.forEach(function(col, index) {
                     var td = document.createElement('td');
                     if (col === 'level') {
                         td.textContent = item[col] === '0' || item[col] === 0 ? 'Tour de magie' : item[col];
                     } else {
                         td.textContent = item[col] || '';
                     }
+                    // Badge "perso" sur la première colonne (le nom) pour les entrées custom.
+                    if (index === 0 && String(item.source) === 'user') {
+                        td.innerHTML = escapeHtml(td.textContent) + userBadge(item);
+                    }
                     tr.appendChild(td);
                 });
 
                 tr.addEventListener('click', function() {
-                    openModal(content);
-                    setHash(tabKey + '/' + item.id);
+                    openDetail(item, type, tabKey);
                 });
 
                 tbody.appendChild(tr);
@@ -244,8 +275,7 @@
                     card.className = 'mdnd-kb-card';
                     card.innerHTML = buildCardSummary(item, type);
                     card.addEventListener('click', function() {
-                        openModal(content);
-                        setHash(tabKey + '/' + item.id);
+                        openDetail(item, type, tabKey);
                     });
                     cardsContainer.appendChild(card);
                 }
@@ -263,31 +293,40 @@
         }
 
         function sortData(data, key, order) {
-            return data.sort(function(a, b) {
+            return data.slice().sort(function(a, b) {
                 var valA = a[key];
                 var valB = b[key];
 
                 if (typeof valA === 'number' && typeof valB === 'number') {
                     return order === 'asc' ? valA - valB : valB - valA;
-                } else {
-                    return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
                 }
+                return order === 'asc'
+                    ? String(valA).localeCompare(String(valB))
+                    : String(valB).localeCompare(String(valA));
             });
         }
 
-        function setupTable(tableId, data, columns, type, searchId) {
+        function setupTable(tableId, tabKey, columns, type, searchId) {
             var table = document.getElementById(tableId);
             var tbodyId = table.querySelector('tbody').id;
             var headers = table.querySelectorAll('th[data-sort]');
             var searchInput = document.getElementById(searchId);
-
-            var currentData = data;
+            var onlyUserCheckbox = document.getElementById(tabKey + '-only-user');
 
             function redrawTable() {
-                var query = searchInput.value;
-                var filtered = filterData(currentData, query, columns);
+                var query = searchInput ? searchInput.value : '';
+                var data = datasets[tabKey]; // état courant (live).
+                if (onlyUserCheckbox && onlyUserCheckbox.checked) {
+                    data = data.filter(function(it) { return String(it.source) === 'user'; });
+                }
+                var filtered = filterData(data, query, columns);
                 var sorted = sortData(filtered, sortState.key, sortState.order);
                 renderTable(tbodyId, sorted, columns, type);
+            }
+            redrawers[tabKey] = redrawTable;
+
+            if (onlyUserCheckbox) {
+                onlyUserCheckbox.addEventListener('change', redrawTable);
             }
 
             headers.forEach(function(th) {
@@ -299,12 +338,10 @@
                         sortState.key = sortKey;
                         sortState.order = 'asc';
                     }
-                    
                     headers.forEach(function(header) {
                         header.classList.remove('sort-asc', 'sort-desc');
                     });
                     th.classList.add('sort-' + sortState.order);
-
                     redrawTable();
                 });
             });
@@ -316,29 +353,210 @@
             redrawTable();
         }
 
-        // Ouvre la modale d'un élément depuis son onglet + son id (restauration via l'URL).
-        openKbItem = function(tabKey, id) {
-            var type, list;
-            if (tabKey === 'spells') {
-                type = 'spell';
-                list = dndKnowledgeBase.spells || [];
-            } else if (tabKey === 'equipment') {
-                type = 'equipment';
-                list = dndKnowledgeBase.equipment || [];
+        // --- MODALE DE DÉTAIL (avec actions Modifier/Supprimer pour les entrées perso) ---
+        function openDetail(item, type, tabKey) {
+            var content = buildDetailContent(item, type);
+            if (String(item.source) === 'user') {
+                content += '<div class="mdnd-modal-actions">'
+                    + '<button type="button" class="mdnd-button mdnd-button-secondary" data-action="edit">Modifier</button>'
+                    + '<button type="button" class="mdnd-button mdnd-button-danger" data-action="delete">Supprimer</button>'
+                    + '</div>';
+            }
+            openModal(content);
+            setHash(tabKey + '/' + item.source + ':' + item.id);
+
+            if (String(item.source) === 'user') {
+                var editBtn = modalBody.querySelector('[data-action="edit"]');
+                var delBtn = modalBody.querySelector('[data-action="delete"]');
+                if (editBtn) editBtn.addEventListener('click', function() { openForm(type, tabKey, item); });
+                if (delBtn) delBtn.addEventListener('click', function() { deleteUserItem(tabKey, type, item); });
+            }
+        }
+
+        // --- MODALE DE FORMULAIRE (ajout / modification) ---
+        var formModal = document.getElementById('mdnd-form-modal');
+        var formTitle = document.getElementById('mdnd-form-title');
+        var formFields = document.getElementById('mdnd-form-fields');
+        var formError = document.getElementById('mdnd-form-error');
+        var formEl = document.getElementById('mdnd-form');
+        var formSubmit = document.getElementById('mdnd-form-submit');
+        var formCtx = { type: null, tabKey: null, editId: null };
+
+        var FIELD_CONFIGS = {
+            spell: [
+                { key: 'name', label: 'Nom', type: 'text', required: true },
+                { key: 'level', label: 'Niveau (0 = tour de magie)', type: 'number', min: 0, max: 9 },
+                { key: 'school', label: 'École', type: 'text' },
+                { key: 'casting_time', label: 'Temps d\'incantation', type: 'text' },
+                { key: 'range_desc', label: 'Portée', type: 'text' },
+                { key: 'components', label: 'Composantes', type: 'text' },
+                { key: 'description', label: 'Description', type: 'textarea' }
+            ],
+            equipment: [
+                { key: 'name', label: 'Nom', type: 'text', required: true },
+                { key: 'type', label: 'Type', type: 'text' },
+                { key: 'category', label: 'Catégorie', type: 'text' },
+                { key: 'rarity', label: 'Rareté', type: 'text' },
+                { key: 'cost', label: 'Coût (po)', type: 'number', step: 'any' },
+                { key: 'weight', label: 'Poids (kg)', type: 'number', step: 'any' },
+                { key: 'damage_dice', label: 'Dés de dégâts', type: 'text' },
+                { key: 'damage_type', label: 'Type de dégâts', type: 'text' },
+                { key: 'ac_bonus', label: 'Bonus de CA', type: 'number' },
+                { key: 'properties', label: 'Propriétés', type: 'textarea' },
+                { key: 'description', label: 'Description', type: 'textarea' }
+            ]
+        };
+
+        function buildFormFields(type, item) {
+            return FIELD_CONFIGS[type].map(function(f) {
+                var id = 'mdnd-field-' + f.key;
+                var val = item && item[f.key] != null ? item[f.key] : '';
+                var control;
+                if (f.type === 'textarea') {
+                    control = '<textarea id="' + id + '" name="' + f.key + '" class="mdnd-input" rows="4">' + escapeHtml(val) + '</textarea>';
+                } else {
+                    var attrs = 'type="' + f.type + '"';
+                    if (f.type === 'number') {
+                        if (f.min != null) attrs += ' min="' + f.min + '"';
+                        if (f.max != null) attrs += ' max="' + f.max + '"';
+                        if (f.step) attrs += ' step="' + f.step + '"';
+                    }
+                    if (f.required) attrs += ' required';
+                    control = '<input id="' + id + '" name="' + f.key + '" class="mdnd-input" ' + attrs + ' value="' + escapeHtml(val) + '">';
+                }
+                return '<div class="mdnd-field"><label for="' + id + '">' + escapeHtml(f.label) + (f.required ? ' *' : '') + '</label>' + control + '</div>';
+            }).join('');
+        }
+
+        function openFormModal() {
+            formModal.classList.add('is-active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeFormModal() {
+            formModal.classList.remove('is-active');
+            document.body.style.overflow = '';
+            formError.hidden = true;
+            formError.textContent = '';
+        }
+
+        function showFormError(msg) {
+            formError.textContent = msg;
+            formError.hidden = false;
+        }
+
+        function openForm(type, tabKey, item) {
+            formCtx.type = type;
+            formCtx.tabKey = tabKey;
+            formCtx.editId = item ? item.id : null;
+            formTitle.textContent = (item ? 'Modifier' : 'Ajouter') + (type === 'spell' ? ' un sort' : ' un objet');
+            formFields.innerHTML = buildFormFields(type, item);
+            formError.hidden = true;
+            closeModal();      // ferme la modale détail si on vient d'un "Modifier"
+            openFormModal();
+        }
+
+        function upsertItem(tabKey, row, editId) {
+            var arr = datasets[tabKey];
+            if (editId) {
+                for (var i = 0; i < arr.length; i++) {
+                    if (arr[i].source === 'user' && String(arr[i].id) === String(editId)) {
+                        arr[i] = row;
+                        break;
+                    }
+                }
             } else {
+                arr.push(row);
+            }
+            if (redrawers[tabKey]) redrawers[tabKey]();
+        }
+
+        function deleteUserItem(tabKey, type, item) {
+            if (!window.confirm('Supprimer « ' + item.name + ' » ? Cette action est définitive.')) {
                 return;
             }
-            var item = list.filter(function(it) { return String(it.id) === String(id); })[0];
+            var base = type === 'spell' ? 'spells' : 'equipment';
+            apiFetch(base + '/' + item.id, 'DELETE').then(function() {
+                datasets[tabKey] = datasets[tabKey].filter(function(it) {
+                    return !(it.source === 'user' && String(it.id) === String(item.id));
+                });
+                if (redrawers[tabKey]) redrawers[tabKey]();
+                closeModal();
+            }).catch(function(err) {
+                window.alert(err.message || 'Suppression impossible.');
+            });
+        }
+
+        if (formEl) {
+            formEl.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var payload = {};
+                FIELD_CONFIGS[formCtx.type].forEach(function(f) {
+                    var el = document.getElementById('mdnd-field-' + f.key);
+                    payload[f.key] = el ? el.value : '';
+                });
+                if (!payload.name || !payload.name.trim()) {
+                    showFormError('Le nom est obligatoire.');
+                    return;
+                }
+                var base = formCtx.type === 'spell' ? 'spells' : 'equipment';
+                var path = formCtx.editId ? base + '/' + formCtx.editId : base;
+                var method = formCtx.editId ? 'PUT' : 'POST';
+
+                formSubmit.disabled = true;
+                apiFetch(path, method, payload).then(function(row) {
+                    upsertItem(formCtx.tabKey, row, formCtx.editId);
+                    closeFormModal();
+                }).catch(function(err) {
+                    showFormError(err.message || 'Enregistrement impossible.');
+                }).finally(function() {
+                    formSubmit.disabled = false;
+                });
+            });
+
+            formModal.querySelectorAll('[data-close="form"]').forEach(function(btn) {
+                btn.addEventListener('click', closeFormModal);
+            });
+            formModal.addEventListener('click', function(e) {
+                if (e.target === formModal) closeFormModal();
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && formModal.classList.contains('is-active')) closeFormModal();
+            });
+        }
+
+        // Boutons "Ajouter".
+        root.querySelectorAll('.mdnd-add-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var type = btn.dataset.add; // 'spell' / 'equipment'
+                openForm(type, type === 'spell' ? 'spells' : 'equipment', null);
+            });
+        });
+
+        // Ouvre la modale d'un élément depuis son onglet + son uid (restauration via l'URL).
+        // uid = "source:id" (ex. "user:5") ; un id nu reste accepté (rétro-compat).
+        openKbItem = function(tabKey, uid) {
+            var type = tabKey === 'spells' ? 'spell' : (tabKey === 'equipment' ? 'equipment' : null);
+            if (!type) return;
+            var source = null, id = uid;
+            if (uid.indexOf(':') !== -1) {
+                var parts = uid.split(':');
+                source = parts[0];
+                id = parts[1];
+            }
+            var item = (datasets[tabKey] || []).filter(function(it) {
+                return String(it.id) === String(id) && (source === null || String(it.source) === source);
+            })[0];
             if (item) {
-                openModal(buildDetailContent(item, type));
+                openDetail(item, type, tabKey);
             }
         };
 
         // --- SORTS ---
-        setupTable('spells-table', dndKnowledgeBase.spells || [], ['name', 'level', 'school', 'casting_time', 'range_desc', 'components'], 'spell', 'spells-search');
+        setupTable('spells-table', 'spells', ['name', 'level', 'school', 'casting_time', 'range_desc', 'components'], 'spell', 'spells-search');
 
         // --- ÉQUIPEMENT ---
-        setupTable('equipment-table', dndKnowledgeBase.equipment || [], ['name', 'type', 'category', 'cost', 'weight'], 'equipment', 'equipment-search');
+        setupTable('equipment-table', 'equipment', ['name', 'type', 'category', 'cost', 'weight'], 'equipment', 'equipment-search');
     }
 
     // --- GESTION DU LANCEUR DE DÉS ---

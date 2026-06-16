@@ -25,7 +25,7 @@ final class Router {
         return $vars;
     }
 
-    private static function is_hub_request(): bool {
+    public static function is_hub_request(): bool {
         return (bool) get_query_var( self::QUERY_VAR );
     }
 
@@ -37,10 +37,18 @@ final class Router {
         wp_enqueue_style( 'mellmoth-dnd', URL . 'assets/app.css', [], VERSION );
         wp_enqueue_script( 'mellmoth-dnd', URL . 'assets/app.js', [], VERSION, true );
 
-        // Rend les données de la base de connaissances accessibles en JS
+        // Rend les données de la base de connaissances accessibles en JS.
+        // Données communes (lecture seule) + données perso de l'utilisateur (éditables) + accès REST.
+        $user_id = get_current_user_id();
         wp_localize_script('mellmoth-dnd', 'dndKnowledgeBase', [
-            'spells' => \Mellmoth_Dnd_Knowledge_Base::get_common_spells(),
-            'equipment' => \Mellmoth_Dnd_Knowledge_Base::get_common_equipment(),
+            'spells'         => \Mellmoth_Dnd_Knowledge_Base::get_common_spells(),
+            'equipment'      => \Mellmoth_Dnd_Knowledge_Base::get_common_equipment(),
+            'userSpells'     => \Mellmoth_Dnd_Knowledge_Base::get_user_spells( $user_id ),
+            'userEquipment'  => \Mellmoth_Dnd_Knowledge_Base::get_user_equipment( $user_id ),
+            'rest'           => [
+                'root'  => esc_url_raw( rest_url( 'mellmoth-dnd/v1/' ) ),
+                'nonce' => wp_create_nonce( 'wp_rest' ),
+            ],
         ]);
     }
 

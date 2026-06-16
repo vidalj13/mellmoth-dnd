@@ -28,8 +28,15 @@ final class Menu {
         $url   = esc_url( home_url( '/' . ROUTE_SLUG . '/' ) );
         $label = esc_html( MENU_LABEL );
 
-        $items .= '<li class="menu-item menu-item-mellmoth-dnd">'
-            . '<a href="' . $url . '">' . $label . '</a></li>';
+        // Sur la page du hub elle-même : on calque le thème pour l'entrée active
+        // (pas de classe "menu-link", état "current" + aria-current).
+        if ( Router::is_hub_request() ) {
+            $items .= '<li class="menu-item menu-item-mellmoth-dnd current-menu-item">'
+                . '<a href="' . $url . '" aria-current="page">' . $label . '</a></li>';
+        } else {
+            $items .= '<li class="menu-item menu-item-mellmoth-dnd">'
+                . '<a class="menu-link" href="' . $url . '">' . $label . '</a></li>';
+        }
 
         return $items;
     }

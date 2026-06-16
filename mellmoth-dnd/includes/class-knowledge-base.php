@@ -8,6 +8,12 @@ class Mellmoth_Dnd_Knowledge_Base
 {
     private static $instance;
 
+    /**
+     * Version du schéma BDD. À incrémenter à chaque changement de table/colonne
+     * pour déclencher la migration auto (cf. maybe_upgrade()).
+     */
+    const DB_VERSION = '2';
+
     public static function get_instance()
     {
         if (null === self::$instance) {
@@ -19,6 +25,19 @@ class Mellmoth_Dnd_Knowledge_Base
     public function __construct()
     {
         // Constructeur
+    }
+
+    /**
+     * Migration auto : (re)joue dbDelta si la version de schéma stockée diffère.
+     * Appelée à chaque chargement (hook plugins_loaded) mais ne fait rien une fois à jour.
+     * Évite d'avoir à désactiver/réactiver le plugin après une mise à jour qui ajoute une table.
+     */
+    public static function maybe_upgrade()
+    {
+        if (get_option('mdnd_db_version') === self::DB_VERSION) {
+            return;
+        }
+        self::on_activation(); // dbDelta est idempotent ; le seed est protégé par un COUNT.
     }
 
     /**
@@ -84,8 +103,31 @@ class Mellmoth_Dnd_Knowledge_Base
         ) $charset_collate;";
         dbDelta($sql_equipment);
 
+        // Table pour l'équipement personnel des utilisateurs (custom, éditable par son propriétaire)
+        $table_name_user_equipment = $wpdb->prefix . 'dnd_user_equipment_reference';
+        $sql_user_equipment = "CREATE TABLE $table_name_user_equipment (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) unsigned NOT NULL,
+            name varchar(255) NOT NULL,
+            type varchar(100) NOT NULL,
+            category varchar(100) NOT NULL,
+            rarity varchar(100) NOT NULL,
+            weight float,
+            cost float,
+            description text,
+            properties text,
+            damage_dice varchar(50),
+            damage_type varchar(50),
+            ac_bonus int,
+            PRIMARY KEY  (id),
+            KEY user_id (user_id)
+        ) $charset_collate;";
+        dbDelta($sql_user_equipment);
+
         self::seed_spells();
         self::seed_equipment();
+
+        update_option('mdnd_db_version', self::DB_VERSION); // Marque le schéma comme à jour.
     }
 
     /**
@@ -150,22 +192,164 @@ class Mellmoth_Dnd_Knowledge_Base
     }
 
     /**
-     * Récupère tous les sorts communs.
+     * Récupère tous les sorts communs (lecture seule, source = common).
      */
     public static function get_common_spells()
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'dnd_spells_reference';
-        return $wpdb->get_results("SELECT * FROM $table_name ORDER BY level, name ASC", ARRAY_A);
+        return $wpdb->get_results("SELECT *, 'common' AS source FROM $table_name ORDER BY level, name ASC", ARRAY_A);
     }
 
     /**
-     * Récupère tout l'équipement commun.
+     * Récupère tout l'équipement commun (lecture seule, source = common).
      */
     public static function get_common_equipment()
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'dnd_equipment_reference';
-        return $wpdb->get_results("SELECT * FROM $table_name ORDER BY type, name ASC", ARRAY_A);
+        return $wpdb->get_results("SELECT *, 'common' AS source FROM $table_name ORDER BY type, name ASC", ARRAY_A);
+    }
+
+    /* ---------------------------------------------------------------------
+     *  Sorts personnels (custom) — toujours scoping par user_id (anti-IDOR)
+     * ------------------------------------------------------------------ */
+
+    public static function get_user_spells($user_id)
+    {
+        global $wpdb;
+        $t = $wpdb->prefix . 'dnd_user_spells_reference';
+        return $wpdb->get_results(
+            $wpdb->prepare("SELECT *, 'user' AS source, 1 AS isEditable FROM $t WHERE user_id = %d ORDER BY level, name ASC", $user_id),
+            ARRAY_A
+        );
+    }
+
+    public static function get_user_spell($user_id, $id)
+    {
+        global $wpdb;
+        $t = $wpdb->prefix . 'dnd_user_spells_reference';
+        return $wpdb->get_row(
+            $wpdb->prepare("SELECT *, 'user' AS source, 1 AS isEditable FROM $t WHERE id = %d AND user_id = %d", $id, $user_id),
+            ARRAY_A
+        );
+    }
+
+    public static function add_user_spell($user_id, $data)
+    {
+        global $wpdb;
+        $t = $wpdb->prefix . 'dnd_user_spells_reference';
+        $ok = $wpdb->insert($t, [
+            'user_id'      => $user_id,
+            'name'         => $data['name'],
+            'level'        => $data['level'],
+            'school'       => $data['school'],
+            'casting_time' => $data['casting_time'],
+            'range_desc'   => $data['range_desc'],
+            'components'   => $data['components'],
+            'description'  => $data['description'],
+        ], ['%d', '%s', '%d', '%s', '%s', '%s', '%s', '%s']);
+
+        return $ok ? self::get_user_spell($user_id, $wpdb->insert_id) : null;
+    }
+
+    public static function update_user_spell($user_id, $id, $data)
+    {
+        global $wpdb;
+        $t = $wpdb->prefix . 'dnd_user_spells_reference';
+        $res = $wpdb->update($t, [
+            'name'         => $data['name'],
+            'level'        => $data['level'],
+            'school'       => $data['school'],
+            'casting_time' => $data['casting_time'],
+            'range_desc'   => $data['range_desc'],
+            'components'   => $data['components'],
+            'description'  => $data['description'],
+        ], [ 'id' => $id, 'user_id' => $user_id ],
+            ['%s', '%d', '%s', '%s', '%s', '%s', '%s'], ['%d', '%d']);
+
+        return ( false === $res ) ? null : self::get_user_spell($user_id, $id);
+    }
+
+    public static function delete_user_spell($user_id, $id)
+    {
+        global $wpdb;
+        $t = $wpdb->prefix . 'dnd_user_spells_reference';
+        return (bool) $wpdb->delete($t, [ 'id' => $id, 'user_id' => $user_id ], ['%d', '%d']);
+    }
+
+    /* ---------------------------------------------------------------------
+     *  Équipement personnel (custom) — scoping par user_id
+     * ------------------------------------------------------------------ */
+
+    public static function get_user_equipment($user_id)
+    {
+        global $wpdb;
+        $t = $wpdb->prefix . 'dnd_user_equipment_reference';
+        return $wpdb->get_results(
+            $wpdb->prepare("SELECT *, 'user' AS source, 1 AS isEditable FROM $t WHERE user_id = %d ORDER BY type, name ASC", $user_id),
+            ARRAY_A
+        );
+    }
+
+    public static function get_user_equipment_item($user_id, $id)
+    {
+        global $wpdb;
+        $t = $wpdb->prefix . 'dnd_user_equipment_reference';
+        return $wpdb->get_row(
+            $wpdb->prepare("SELECT *, 'user' AS source, 1 AS isEditable FROM $t WHERE id = %d AND user_id = %d", $id, $user_id),
+            ARRAY_A
+        );
+    }
+
+    public static function add_user_equipment($user_id, $data)
+    {
+        global $wpdb;
+        $t = $wpdb->prefix . 'dnd_user_equipment_reference';
+        $ok = $wpdb->insert($t, [
+            'user_id'     => $user_id,
+            'name'        => $data['name'],
+            'type'        => $data['type'],
+            'category'    => $data['category'],
+            'rarity'      => $data['rarity'],
+            'weight'      => $data['weight'],
+            'cost'        => $data['cost'],
+            'description' => $data['description'],
+            'properties'  => $data['properties'],
+            'damage_dice' => $data['damage_dice'],
+            'damage_type' => $data['damage_type'],
+            'ac_bonus'    => $data['ac_bonus'],
+        ], ['%d', '%s', '%s', '%s', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%d']);
+
+        return $ok ? self::get_user_equipment_item($user_id, $wpdb->insert_id) : null;
+    }
+
+    public static function update_user_equipment($user_id, $id, $data)
+    {
+        global $wpdb;
+        $t = $wpdb->prefix . 'dnd_user_equipment_reference';
+        $res = $wpdb->update($t, [
+            'name'        => $data['name'],
+            'type'        => $data['type'],
+            'category'    => $data['category'],
+            'rarity'      => $data['rarity'],
+            'weight'      => $data['weight'],
+            'cost'        => $data['cost'],
+            'description' => $data['description'],
+            'properties'  => $data['properties'],
+            'damage_dice' => $data['damage_dice'],
+            'damage_type' => $data['damage_type'],
+            'ac_bonus'    => $data['ac_bonus'],
+        ], [ 'id' => $id, 'user_id' => $user_id ],
+            ['%s', '%s', '%s', '%s', '%f', '%f', '%s', '%s', '%s', '%s', '%d'], ['%d', '%d']);
+
+        return ( false === $res ) ? null : self::get_user_equipment_item($user_id, $id);
+    }
+
+    public static function delete_user_equipment($user_id, $id)
+    {
+        global $wpdb;
+        $t = $wpdb->prefix . 'dnd_user_equipment_reference';
+        return (bool) $wpdb->delete($t, [ 'id' => $id, 'user_id' => $user_id ], ['%d', '%d']);
     }
 }

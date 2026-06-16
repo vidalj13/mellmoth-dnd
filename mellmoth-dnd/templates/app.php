@@ -12,15 +12,7 @@ get_header();
 
     <nav class="mdnd-tabs" role="tablist" aria-label="Navigation du hub">
         <button type="button" class="mdnd-tab is-active" role="tab"
-                data-panel="scenario" aria-controls="panel-scenario" aria-selected="true">
-            Scenario
-        </button>
-        <button type="button" class="mdnd-tab" role="tab"
-                data-panel="fiches" aria-controls="panel-fiches" aria-selected="false">
-            Fiches perso
-        </button>
-        <button type="button" class="mdnd-tab" role="tab"
-                data-panel="spells" aria-controls="panel-spells" aria-selected="false">
+                data-panel="spells" aria-controls="panel-spells" aria-selected="true">
             Sorts
         </button>
         <button type="button" class="mdnd-tab" role="tab"
@@ -33,17 +25,11 @@ get_header();
         </button>
     </nav>
 
-    <section class="mdnd-panel is-active" id="panel-scenario" role="tabpanel">
-        <p>Section <strong>Scenario</strong> &mdash; contenu a venir (increment suivant).</p>
-    </section>
-
-    <section class="mdnd-panel" id="panel-fiches" role="tabpanel" hidden>
-        <p>Section <strong>Fiches perso</strong> &mdash; contenu a venir (increment suivant).</p>
-    </section>
-
-    <section class="mdnd-panel" id="panel-spells" role="tabpanel" hidden>
+    <section class="mdnd-panel is-active" id="panel-spells" role="tabpanel">
         <div class="mdnd-kb-controls">
             <input type="search" id="spells-search" placeholder="Rechercher un sort...">
+            <label class="mdnd-filter-perso"><input type="checkbox" id="spells-only-user"> Perso uniquement</label>
+            <button type="button" class="mdnd-button mdnd-add-btn" data-add="spell">+ Ajouter un sort</button>
         </div>
         <div class="mdnd-kb-table-wrapper">
             <table class="mdnd-kb-table" id="spells-table">
@@ -70,6 +56,8 @@ get_header();
     <section class="mdnd-panel" id="panel-equipment" role="tabpanel" hidden>
         <div class="mdnd-kb-controls">
             <input type="search" id="equipment-search" placeholder="Rechercher un objet...">
+            <label class="mdnd-filter-perso"><input type="checkbox" id="equipment-only-user"> Perso uniquement</label>
+            <button type="button" class="mdnd-button mdnd-add-btn" data-add="equipment">+ Ajouter un objet</button>
         </div>
         <div class="mdnd-kb-table-wrapper">
             <table class="mdnd-kb-table" id="equipment-table">
@@ -137,6 +125,24 @@ get_header();
         <div id="mdnd-modal-body">
             <!-- Les détails seront injectés ici par JS -->
         </div>
+    </div>
+</div>
+
+<!-- Popup de formulaire (ajout / modification d'une entrée perso) -->
+<div id="mdnd-form-modal" class="mdnd-modal">
+    <div class="mdnd-modal-content">
+        <button class="mdnd-modal-close" data-close="form">&times;</button>
+        <h2 id="mdnd-form-title"></h2>
+        <form id="mdnd-form" class="mdnd-form" novalidate>
+            <div id="mdnd-form-fields">
+                <!-- Champs injectés par JS selon le type -->
+            </div>
+            <p id="mdnd-form-error" class="mdnd-form-error" hidden></p>
+            <div class="mdnd-form-actions">
+                <button type="button" class="mdnd-button mdnd-button-secondary" data-close="form">Annuler</button>
+                <button type="submit" class="mdnd-button" id="mdnd-form-submit">Enregistrer</button>
+            </div>
+        </form>
     </div>
 </div>
 

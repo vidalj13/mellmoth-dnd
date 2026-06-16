@@ -59,17 +59,53 @@
 
 /* Base de connaissances - Tableaux */
 .mdnd-kb-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
     margin-bottom: 1rem;
 }
 
 .mdnd-kb-controls input[type="search"] {
-    width: 100%;
+    flex: 1 1 auto;
     max-width: 400px;
     padding: 0.5rem 1rem;
     border: 1px solid #374151;
     background: #1f2937;
     color: #e2e8f0;
     border-radius: 4px;
+}
+
+.mdnd-filter-perso {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.mdnd-add-btn {
+    flex: 0 0 auto;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+/* Badge "perso" sur les entrées custom de l'utilisateur */
+.mdnd-badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: 999px;
+    vertical-align: middle;
 }
 
 .mdnd-kb-table-wrapper {
@@ -213,10 +249,19 @@
     border: 1px solid #374151;
     width: 90%;
     max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
     border-radius: 8px;
     position: relative;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     color: #e2e8f0;
+}
+
+/* Titre de la modale de formulaire (hors .mdnd-modal-body) */
+#mdnd-form-title {
+    color: #f8fafc;
+    font-size: 1.6rem;
+    margin: 0 2rem 1rem 0;
 }
 
 .mdnd-modal-close {
@@ -259,6 +304,10 @@
     border-top: 1px solid #374151;
     border-bottom: 1px solid #374151;
     padding: 1rem 0;
+    margin: 1rem 0;
+}
+
+.mdnd-modal-props {
     margin: 1rem 0;
 }
 
@@ -311,6 +360,94 @@
 
 .mdnd-button:hover {
     background-color: #2563eb;
+}
+
+.mdnd-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.mdnd-button-secondary {
+    background-color: #374151;
+}
+
+.mdnd-button-secondary:hover {
+    background-color: #4b5563;
+}
+
+.mdnd-button-danger {
+    background-color: #dc2626;
+}
+
+.mdnd-button-danger:hover {
+    background-color: #b91c1c;
+}
+
+/* Actions (Modifier/Supprimer) en bas de la modale de détail */
+.mdnd-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #374151;
+}
+
+/* Formulaire d'ajout / modification */
+.mdnd-form {
+    margin-top: 1rem;
+}
+
+.mdnd-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+}
+
+.mdnd-field label {
+    font-weight: 600;
+    color: #9ca3af;
+    font-size: 0.9rem;
+}
+
+.mdnd-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #374151;
+    background: #111827;
+    color: #e2e8f0;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.mdnd-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+textarea.mdnd-input {
+    resize: vertical;
+    min-height: 4rem;
+}
+
+.mdnd-form-error {
+    margin: 0 0 1rem 0;
+    padding: 0.6rem 0.85rem;
+    color: #fca5a5;
+    background: rgba(220, 38, 38, 0.12);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.mdnd-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
 }
 
 .mdnd-dice-result {
