@@ -56,6 +56,14 @@ Le hub doit fonctionner sur mobile et tablette (le site tourne sur WordPress.com
 - **Cache-busting :** la constante `VERSION` versionne `app.css`/`app.js` (`wp_enqueue_*`). **Incrémenter la version à chaque modif d'asset** pour éviter le cache navigateur sur staging/prod.
 - **Pas de bandeau superflu :** l'en-tête « titre + Bienvenue » a été retiré ; la navigation par onglets sert de point d'entrée. Garder l'UI sobre.
 
+### Convention sécurité (norme — à respecter pour tout nouveau code)
+
+- **Échapper tout champ BDD/utilisateur rendu en JS :** toute valeur injectée via `innerHTML` passe par `escapeHtml()` (et `formatDescription()` pour les textes multi-lignes), définis dans `app.js`. Ne jamais concaténer une donnée brute dans du HTML. Privilégier `textContent` quand il n'y a pas de mise en forme. *(Les tables de référence sont aujourd'hui seedées depuis des JSON bundlés, mais la saisie utilisateur est prévue — cf. table `dnd_user_spells_reference` — d'où l'échappement systématique dès maintenant.)*
+- **Autorisation côté serveur, toujours :** chaque point d'entrée vérifie la capability (`current_user_can`) ; ne jamais se fier au masquage d'UI/menu. La garde de référence est `Router::maybe_render` (login + capability → 403).
+- **CSRF :** tout traitement de formulaire/`$_POST` vérifie un **nonce** (`wp_nonce_field` + `wp_verify_nonce`) **en plus** du contrôle de capability.
+- **SQL :** requêtes paramétrées (`$wpdb->insert`/`$wpdb->prepare`) ; jamais d'entrée utilisateur concaténée. Les noms de tables restent des constantes `$wpdb->prefix . '...'`.
+- **Garde d'accès direct :** tout fichier PHP commence par le garde `ABSPATH`/`WPINC`.
+
 ### Correspondance des concepts (repère pour un profil .NET / Kotlin)
 
 |WordPress                                    |Équivalent mental                                    |
