@@ -30,6 +30,7 @@
     // --- GESTION DES ONGLETS ---
     var tabs = root.querySelectorAll('.mdnd-tab');
     var panels = {
+        characters: root.querySelector('#panel-characters'),
         spells: root.querySelector('#panel-spells'),
         equipment: root.querySelector('#panel-equipment'),
         'dice-roller': root.querySelector('#panel-dice-roller')
@@ -557,6 +558,439 @@
 
         // --- ÉQUIPEMENT ---
         setupTable('equipment-table', 'equipment', ['name', 'type', 'category', 'cost', 'weight'], 'equipment', 'equipment-search');
+
+        /* =====================================================================
+         *  FICHES DE PERSONNAGE D&D 5e
+         * ================================================================== */
+        var characters = (dndKnowledgeBase.characters || []).slice();
+
+        var charListView      = document.getElementById('characters-list-view');
+        var charEditorView    = document.getElementById('character-editor-view');
+        var charListContainer = document.getElementById('characters-list');
+        var charCreateBtn     = document.getElementById('character-create-btn');
+
+        if (charListContainer && charEditorView) {
+
+            var current = { id: null, equipRefs: [], spellRefs: [] };
+
+            var ABILITIES = [
+                ['str', 'Force'], ['dex', 'Dextérité'], ['con', 'Constitution'],
+                ['int', 'Intelligence'], ['wis', 'Sagesse'], ['cha', 'Charisme']
+            ];
+            var SKILLS = [
+                ['acrobatics', 'Acrobaties', 'dex'], ['animalHandling', 'Dressage', 'wis'],
+                ['arcana', 'Arcanes', 'int'], ['athletics', 'Athlétisme', 'str'],
+                ['deception', 'Tromperie', 'cha'], ['history', 'Histoire', 'int'],
+                ['insight', 'Perspicacité', 'wis'], ['intimidation', 'Intimidation', 'cha'],
+                ['investigation', 'Investigation', 'int'], ['medicine', 'Médecine', 'wis'],
+                ['nature', 'Nature', 'int'], ['perception', 'Perception', 'wis'],
+                ['performance', 'Représentation', 'cha'], ['persuasion', 'Persuasion', 'cha'],
+                ['religion', 'Religion', 'int'], ['sleightOfHand', 'Escamotage', 'dex'],
+                ['stealth', 'Discrétion', 'dex'], ['survival', 'Survie', 'wis']
+            ];
+
+            function abilityMod(score) { return Math.floor(((parseInt(score, 10) || 10) - 10) / 2); }
+            function fmtMod(m) { return (m >= 0 ? '+' : '') + m; }
+            function profBonus(level) {
+                var l = Math.max(1, Math.min(20, parseInt(level, 10) || 1));
+                return 2 + Math.floor((l - 1) / 4);
+            }
+
+            function getNested(obj, path) {
+                return path.split('.').reduce(function (o, k) { return (o == null) ? undefined : o[k]; }, obj);
+            }
+            function setNested(obj, path, value) {
+                var parts = path.split('.'), o = obj, i;
+                for (i = 0; i < parts.length - 1; i++) {
+                    if (typeof o[parts[i]] !== 'object' || o[parts[i]] === null) { o[parts[i]] = {}; }
+                    o = o[parts[i]];
+                }
+                o[parts[parts.length - 1]] = value;
+            }
+
+            function emptySheet() {
+                return {
+                    identity: { name: '', class: '', level: 1, race: '', background: '', alignment: '', xp: '', playerName: '' },
+                    abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+                    saves: {}, skills: {}, inspiration: false,
+                    combat: { ac: '', initiativeMisc: 0, speed: '', hpMax: '', hpCurrent: '', hpTemp: '', hitDiceTotal: '', hitDiceType: '', deathSuccess: 0, deathFail: 0 },
+                    attacks: [],
+                    personality: { traits: '', ideals: '', bonds: '', flaws: '' },
+                    features: '', proficiencies: '',
+                    equipment: { refs: [], freeText: '', money: { pp: 0, gp: 0, ep: 0, sp: 0, cp: 0 } },
+                    spells: { ability: '', refs: [], slots: '', notes: '' },
+                    notes: ''
+                };
+            }
+
+            // Fusionne la fiche stockée avec une fiche vide (champs manquants par défaut).
+            function mergeSheet(stored) {
+                var base = emptySheet();
+                if (!stored || typeof stored !== 'object') { return base; }
+                ['identity', 'abilities', 'combat', 'personality'].forEach(function (grp) {
+                    if (stored[grp]) {
+                        Object.keys(base[grp]).forEach(function (k) {
+                            if (stored[grp][k] != null) { base[grp][k] = stored[grp][k]; }
+                        });
+                    }
+                });
+                base.saves = stored.saves || {};
+                base.skills = stored.skills || {};
+                base.inspiration = !!stored.inspiration;
+                base.attacks = Array.isArray(stored.attacks) ? stored.attacks : [];
+                base.features = stored.features || '';
+                base.proficiencies = stored.proficiencies || '';
+                base.notes = stored.notes || '';
+                if (stored.equipment) {
+                    base.equipment.refs = Array.isArray(stored.equipment.refs) ? stored.equipment.refs : [];
+                    base.equipment.freeText = stored.equipment.freeText || '';
+                    base.equipment.money = stored.equipment.money || base.equipment.money;
+                }
+                if (stored.spells) {
+                    base.spells.refs = Array.isArray(stored.spells.refs) ? stored.spells.refs : [];
+                    base.spells.ability = stored.spells.ability || '';
+                    base.spells.slots = stored.spells.slots || '';
+                    base.spells.notes = stored.spells.notes || '';
+                }
+                return base;
+            }
+
+            /* ---------- Liste ---------- */
+            function renderCharacterList() {
+                if (!characters.length) {
+                    charListContainer.innerHTML = '<p class="mdnd-empty-table">Aucun personnage pour l\'instant. Créez-en un !</p>';
+                    return;
+                }
+                charListContainer.innerHTML = '';
+                characters.forEach(function (c) {
+                    var sub = [c.class, c.race].filter(Boolean).join(' · ');
+                    var card = document.createElement('div');
+                    card.className = 'mdnd-char-card';
+                    card.innerHTML = '<div class="mdnd-char-card-name">' + escapeHtml(c.name) + '</div>'
+                        + '<div class="mdnd-char-card-sub">' + escapeHtml(sub) + (sub ? ' — ' : '') + 'niv. ' + escapeHtml(c.level) + '</div>';
+                    card.addEventListener('click', function () { openEditor(c); });
+                    charListContainer.appendChild(card);
+                });
+            }
+
+            /* ---------- Helpers de rendu de champs ---------- */
+            function chField(label, path, type, value, extra) {
+                return '<label class="mdnd-field"><span>' + escapeHtml(label) + '</span>'
+                    + '<input class="mdnd-input" type="' + type + '" data-path="' + path + '" value="' + escapeHtml(value == null ? '' : value) + '" ' + (extra || '') + '></label>';
+            }
+            function chArea(label, path, value) {
+                return '<label class="mdnd-field mdnd-field-wide"><span>' + escapeHtml(label) + '</span>'
+                    + '<textarea class="mdnd-input" rows="3" data-path="' + path + '">' + escapeHtml(value == null ? '' : value) + '</textarea></label>';
+            }
+            function refOptions(tabKey) {
+                return (datasets[tabKey] || []).map(function (it) {
+                    return '<option value="' + escapeHtml(it.source) + ':' + escapeHtml(it.id) + '">'
+                        + escapeHtml(it.name) + (it.source === 'user' ? ' (perso)' : '') + '</option>';
+                }).join('');
+            }
+            function attackRow(atk) {
+                atk = atk || {};
+                return '<div class="mdnd-attack-row">'
+                    + '<input class="mdnd-input" placeholder="Nom" data-attack="name" value="' + escapeHtml(atk.name || '') + '">'
+                    + '<input class="mdnd-input" placeholder="Bonus" data-attack="bonus" value="' + escapeHtml(atk.bonus || '') + '">'
+                    + '<input class="mdnd-input" placeholder="Dégâts / type" data-attack="damage" value="' + escapeHtml(atk.damage || '') + '">'
+                    + '<button type="button" class="mdnd-button mdnd-button-danger mdnd-attack-del" title="Retirer">×</button>'
+                    + '</div>';
+            }
+
+            /* ---------- Construction de l'éditeur ---------- */
+            function buildEditorHtml(sheet, isEditing) {
+                var g = function (p) { return getNested(sheet, p); };
+
+                var abilitiesHtml = ABILITIES.map(function (a) {
+                    var score = g('abilities.' + a[0]);
+                    return '<div class="mdnd-ability">'
+                        + '<div class="mdnd-ability-name">' + a[1] + '</div>'
+                        + '<input class="mdnd-input mdnd-ability-score" type="number" data-path="abilities.' + a[0] + '" value="' + escapeHtml(score == null ? 10 : score) + '">'
+                        + '<div class="mdnd-ability-mod" data-mod="' + a[0] + '">+0</div>'
+                        + '</div>';
+                }).join('');
+
+                var savesHtml = ABILITIES.map(function (a) {
+                    var checked = g('saves.' + a[0]) ? ' checked' : '';
+                    return '<label class="mdnd-line"><input type="checkbox" data-path="saves.' + a[0] + '"' + checked + '>'
+                        + '<span class="mdnd-line-total" data-save-total="' + a[0] + '">+0</span> ' + a[1] + '</label>';
+                }).join('');
+
+                var skillsHtml = SKILLS.map(function (s) {
+                    var checked = g('skills.' + s[0]) ? ' checked' : '';
+                    return '<label class="mdnd-line"><input type="checkbox" data-path="skills.' + s[0] + '" data-skill-ability="' + s[2] + '"' + checked + '>'
+                        + '<span class="mdnd-line-total" data-skill-total="' + s[0] + '">+0</span> ' + s[1] + ' <em>(' + s[2].toUpperCase() + ')</em></label>';
+                }).join('');
+
+                var attacksHtml = (sheet.attacks || []).map(attackRow).join('');
+
+                var abilityOptions = '<option value="">—</option>' + ABILITIES.map(function (a) {
+                    return '<option value="' + a[0] + '"' + (g('spells.ability') === a[0] ? ' selected' : '') + '>' + a[1] + '</option>';
+                }).join('');
+
+                return ''
+                    + '<div class="mdnd-char-toolbar">'
+                    +   '<button type="button" class="mdnd-button mdnd-button-secondary" id="char-cancel">← Retour</button>'
+                    +   '<div class="mdnd-char-toolbar-right">'
+                    +     (isEditing ? '<button type="button" class="mdnd-button mdnd-button-danger" id="char-delete">Supprimer</button>' : '')
+                    +     '<button type="button" class="mdnd-button" id="char-save">Enregistrer</button>'
+                    +   '</div>'
+                    + '</div>'
+
+                    + '<section class="mdnd-char-section"><h3>Identité</h3><div class="mdnd-grid">'
+                    +   chField('Nom du personnage', 'identity.name', 'text', g('identity.name'))
+                    +   chField('Classe', 'identity.class', 'text', g('identity.class'))
+                    +   chField('Niveau', 'identity.level', 'number', g('identity.level'), 'min="1" max="20"')
+                    +   chField('Race', 'identity.race', 'text', g('identity.race'))
+                    +   chField('Historique', 'identity.background', 'text', g('identity.background'))
+                    +   chField('Alignement', 'identity.alignment', 'text', g('identity.alignment'))
+                    +   chField('Points d\'expérience', 'identity.xp', 'text', g('identity.xp'))
+                    +   chField('Nom du joueur', 'identity.playerName', 'text', g('identity.playerName'))
+                    + '</div></section>'
+
+                    + '<section class="mdnd-char-section"><h3>Caractéristiques</h3>'
+                    +   '<div class="mdnd-abilities">' + abilitiesHtml + '</div>'
+                    +   '<div class="mdnd-derived">'
+                    +     '<div class="mdnd-derived-box"><span class="mdnd-derived-val" data-prof-bonus>+0</span><span>Bonus de maîtrise</span></div>'
+                    +     '<div class="mdnd-derived-box"><span class="mdnd-derived-val" data-passive-perception>10</span><span>Perception passive</span></div>'
+                    +     '<label class="mdnd-derived-box mdnd-derived-check"><input type="checkbox" data-path="inspiration"' + (g('inspiration') ? ' checked' : '') + '><span>Inspiration</span></label>'
+                    +   '</div>'
+                    + '</section>'
+
+                    + '<div class="mdnd-two-col">'
+                    +   '<section class="mdnd-char-section"><h3>Jets de sauvegarde</h3><div class="mdnd-lines">' + savesHtml + '</div></section>'
+                    +   '<section class="mdnd-char-section"><h3>Compétences</h3><div class="mdnd-lines">' + skillsHtml + '</div></section>'
+                    + '</div>'
+
+                    + '<section class="mdnd-char-section"><h3>Combat</h3><div class="mdnd-grid">'
+                    +   chField('Classe d\'armure (CA)', 'combat.ac', 'number', g('combat.ac'))
+                    +   '<label class="mdnd-field"><span>Initiative</span><div class="mdnd-input mdnd-readonly" data-init-total>+0</div></label>'
+                    +   chField('Initiative (divers)', 'combat.initiativeMisc', 'number', g('combat.initiativeMisc'))
+                    +   chField('Vitesse', 'combat.speed', 'text', g('combat.speed'))
+                    +   chField('PV max', 'combat.hpMax', 'number', g('combat.hpMax'))
+                    +   chField('PV actuels', 'combat.hpCurrent', 'number', g('combat.hpCurrent'))
+                    +   chField('PV temporaires', 'combat.hpTemp', 'number', g('combat.hpTemp'))
+                    +   chField('Dés de vie (total)', 'combat.hitDiceTotal', 'text', g('combat.hitDiceTotal'))
+                    +   chField('Type de dé de vie', 'combat.hitDiceType', 'text', g('combat.hitDiceType'))
+                    +   chField('Jets de mort — réussites', 'combat.deathSuccess', 'number', g('combat.deathSuccess'), 'min="0" max="3"')
+                    +   chField('Jets de mort — échecs', 'combat.deathFail', 'number', g('combat.deathFail'), 'min="0" max="3"')
+                    + '</div></section>'
+
+                    + '<section class="mdnd-char-section"><h3>Attaques</h3>'
+                    +   '<div id="char-attacks">' + attacksHtml + '</div>'
+                    +   '<button type="button" class="mdnd-button mdnd-button-secondary" id="char-attack-add">+ Ajouter une attaque</button>'
+                    + '</section>'
+
+                    + '<section class="mdnd-char-section"><h3>Personnalité</h3><div class="mdnd-grid">'
+                    +   chArea('Traits de personnalité', 'personality.traits', g('personality.traits'))
+                    +   chArea('Idéaux', 'personality.ideals', g('personality.ideals'))
+                    +   chArea('Liens', 'personality.bonds', g('personality.bonds'))
+                    +   chArea('Défauts', 'personality.flaws', g('personality.flaws'))
+                    + '</div></section>'
+
+                    + '<section class="mdnd-char-section"><h3>Capacités & traits</h3>' + chArea('Capacités de classe, dons, traits raciaux…', 'features', g('features')) + '</section>'
+                    + '<section class="mdnd-char-section"><h3>Maîtrises & langues</h3>' + chArea('Armures, armes, outils, langues…', 'proficiencies', g('proficiencies')) + '</section>'
+
+                    + '<section class="mdnd-char-section"><h3>Équipement</h3>'
+                    +   '<div class="mdnd-ref-picker"><select class="mdnd-input" id="char-equip-select"><option value="">— Ajouter un objet depuis la lib —</option>' + refOptions('equipment') + '</select></div>'
+                    +   '<div class="mdnd-chips" id="char-equip-chips"></div>'
+                    +   chArea('Autre équipement (texte libre)', 'equipment.freeText', g('equipment.freeText'))
+                    +   '<div class="mdnd-money">'
+                    +     chField('PO', 'equipment.money.gp', 'number', g('equipment.money.gp'))
+                    +     chField('PA', 'equipment.money.sp', 'number', g('equipment.money.sp'))
+                    +     chField('PC', 'equipment.money.cp', 'number', g('equipment.money.cp'))
+                    +     chField('PP', 'equipment.money.pp', 'number', g('equipment.money.pp'))
+                    +     chField('PE', 'equipment.money.ep', 'number', g('equipment.money.ep'))
+                    +   '</div>'
+                    + '</section>'
+
+                    + '<section class="mdnd-char-section"><h3>Sorts</h3>'
+                    +   '<div class="mdnd-grid">'
+                    +     '<label class="mdnd-field"><span>Caractéristique d\'incantation</span><select class="mdnd-input" data-path="spells.ability">' + abilityOptions + '</select></label>'
+                    +     '<label class="mdnd-field"><span>DD de sauvegarde des sorts</span><div class="mdnd-input mdnd-readonly" data-spell-dc>—</div></label>'
+                    +     '<label class="mdnd-field"><span>Bonus d\'attaque des sorts</span><div class="mdnd-input mdnd-readonly" data-spell-atk>—</div></label>'
+                    +   '</div>'
+                    +   '<div class="mdnd-ref-picker"><select class="mdnd-input" id="char-spell-select"><option value="">— Ajouter un sort depuis la lib —</option>' + refOptions('spells') + '</select></div>'
+                    +   '<div class="mdnd-chips" id="char-spell-chips"></div>'
+                    +   chArea('Emplacements de sorts (par niveau)', 'spells.slots', g('spells.slots'))
+                    +   chArea('Notes de sorts', 'spells.notes', g('spells.notes'))
+                    + '</section>'
+
+                    + '<section class="mdnd-char-section"><h3>Notes</h3>' + chArea('Notes diverses', 'notes', g('notes')) + '</section>';
+            }
+
+            /* ---------- Calculs auto ---------- */
+            function recompute() {
+                var scores = {};
+                ABILITIES.forEach(function (a) {
+                    var inp = charEditorView.querySelector('[data-path="abilities.' + a[0] + '"]');
+                    scores[a[0]] = parseInt(inp.value, 10) || 10;
+                    charEditorView.querySelector('[data-mod="' + a[0] + '"]').textContent = fmtMod(abilityMod(scores[a[0]]));
+                });
+                var level = parseInt(charEditorView.querySelector('[data-path="identity.level"]').value, 10) || 1;
+                var pb = profBonus(level);
+                charEditorView.querySelector('[data-prof-bonus]').textContent = fmtMod(pb);
+
+                ABILITIES.forEach(function (a) {
+                    var prof = charEditorView.querySelector('[data-path="saves.' + a[0] + '"]').checked;
+                    charEditorView.querySelector('[data-save-total="' + a[0] + '"]').textContent = fmtMod(abilityMod(scores[a[0]]) + (prof ? pb : 0));
+                });
+                SKILLS.forEach(function (s) {
+                    var prof = charEditorView.querySelector('[data-path="skills.' + s[0] + '"]').checked;
+                    charEditorView.querySelector('[data-skill-total="' + s[0] + '"]').textContent = fmtMod(abilityMod(scores[s[2]]) + (prof ? pb : 0));
+                });
+                var initMisc = parseInt(charEditorView.querySelector('[data-path="combat.initiativeMisc"]').value, 10) || 0;
+                charEditorView.querySelector('[data-init-total]').textContent = fmtMod(abilityMod(scores.dex) + initMisc);
+                var percProf = charEditorView.querySelector('[data-path="skills.perception"]').checked;
+                charEditorView.querySelector('[data-passive-perception]').textContent = 10 + abilityMod(scores.wis) + (percProf ? pb : 0);
+
+                var ab = charEditorView.querySelector('[data-path="spells.ability"]').value;
+                if (ab && scores[ab] != null) {
+                    charEditorView.querySelector('[data-spell-dc]').textContent = 8 + pb + abilityMod(scores[ab]);
+                    charEditorView.querySelector('[data-spell-atk]').textContent = fmtMod(pb + abilityMod(scores[ab]));
+                } else {
+                    charEditorView.querySelector('[data-spell-dc]').textContent = '—';
+                    charEditorView.querySelector('[data-spell-atk]').textContent = '—';
+                }
+            }
+
+            /* ---------- Pickers liés à la lib ---------- */
+            function resolveRef(tabKey, ref) {
+                return (datasets[tabKey] || []).filter(function (it) {
+                    return String(it.id) === String(ref.id) && String(it.source) === String(ref.source);
+                })[0];
+            }
+            function parseRef(value) {
+                var i = value.indexOf(':');
+                return { source: value.slice(0, i), id: value.slice(i + 1) };
+            }
+            function renderRefChips(tabKey) {
+                var refs = (tabKey === 'equipment') ? current.equipRefs : current.spellRefs;
+                var container = charEditorView.querySelector(tabKey === 'equipment' ? '#char-equip-chips' : '#char-spell-chips');
+                container.innerHTML = '';
+                refs.forEach(function (ref, idx) {
+                    var item = resolveRef(tabKey, ref);
+                    var chip = document.createElement('span');
+                    chip.className = 'mdnd-chip';
+                    chip.innerHTML = escapeHtml(item ? item.name : '(supprimé)') + ' <button type="button" class="mdnd-chip-del">×</button>';
+                    chip.querySelector('.mdnd-chip-del').addEventListener('click', function () {
+                        refs.splice(idx, 1);
+                        renderRefChips(tabKey);
+                    });
+                    container.appendChild(chip);
+                });
+            }
+
+            /* ---------- Collecte ---------- */
+            function collectSheet() {
+                var sheet = emptySheet();
+                charEditorView.querySelectorAll('[data-path]').forEach(function (el) {
+                    var path = el.getAttribute('data-path');
+                    var val;
+                    if (el.type === 'checkbox') { val = el.checked; }
+                    else if (el.type === 'number') { val = (el.value === '') ? '' : (parseFloat(el.value) || 0); }
+                    else { val = el.value; }
+                    setNested(sheet, path, val);
+                });
+                sheet.attacks = [].map.call(charEditorView.querySelectorAll('.mdnd-attack-row'), function (row) {
+                    return {
+                        name: row.querySelector('[data-attack="name"]').value,
+                        bonus: row.querySelector('[data-attack="bonus"]').value,
+                        damage: row.querySelector('[data-attack="damage"]').value
+                    };
+                }).filter(function (a) { return a.name || a.bonus || a.damage; });
+                sheet.equipment.refs = current.equipRefs.slice();
+                sheet.spells.refs = current.spellRefs.slice();
+                return sheet;
+            }
+
+            /* ---------- Ouverture / fermeture / sauvegarde ---------- */
+            function openEditor(character) {
+                var sheet = mergeSheet(character ? character.sheet : null);
+                current.id = character ? character.id : null;
+                current.equipRefs = sheet.equipment.refs.slice();
+                current.spellRefs = sheet.spells.refs.slice();
+
+                charEditorView.innerHTML = buildEditorHtml(sheet, !!current.id);
+                charListView.hidden = true;
+                charEditorView.hidden = false;
+                bindEditor();
+                renderRefChips('equipment');
+                renderRefChips('spells');
+                recompute();
+                window.scrollTo(0, 0);
+            }
+
+            function closeEditor() {
+                charEditorView.hidden = true;
+                charEditorView.innerHTML = '';
+                charListView.hidden = false;
+            }
+
+            function upsertCharacter(row) {
+                for (var i = 0; i < characters.length; i++) {
+                    if (String(characters[i].id) === String(row.id)) { characters[i] = row; return; }
+                }
+                characters.unshift(row);
+            }
+
+            function saveCharacter() {
+                var body = { sheet: collectSheet() };
+                var path = current.id ? 'characters/' + current.id : 'characters';
+                var method = current.id ? 'PUT' : 'POST';
+                var btn = charEditorView.querySelector('#char-save');
+                btn.disabled = true;
+                apiFetch(path, method, body).then(function (row) {
+                    upsertCharacter(row);
+                    renderCharacterList();
+                    closeEditor();
+                }).catch(function (err) {
+                    window.alert(err.message || 'Enregistrement impossible.');
+                }).finally(function () { btn.disabled = false; });
+            }
+
+            function deleteCharacter() {
+                if (!current.id) { closeEditor(); return; }
+                if (!window.confirm('Supprimer cette fiche ? Cette action est définitive.')) { return; }
+                apiFetch('characters/' + current.id, 'DELETE').then(function () {
+                    characters = characters.filter(function (c) { return String(c.id) !== String(current.id); });
+                    renderCharacterList();
+                    closeEditor();
+                }).catch(function (err) { window.alert(err.message || 'Suppression impossible.'); });
+            }
+
+            function bindEditor() {
+                charEditorView.addEventListener('input', recompute);
+                charEditorView.addEventListener('change', recompute);
+
+                charEditorView.querySelector('#char-cancel').addEventListener('click', closeEditor);
+                charEditorView.querySelector('#char-save').addEventListener('click', saveCharacter);
+                var delBtn = charEditorView.querySelector('#char-delete');
+                if (delBtn) { delBtn.addEventListener('click', deleteCharacter); }
+
+                charEditorView.querySelector('#char-attack-add').addEventListener('click', function () {
+                    charEditorView.querySelector('#char-attacks').insertAdjacentHTML('beforeend', attackRow());
+                });
+                charEditorView.addEventListener('click', function (e) {
+                    if (e.target.classList.contains('mdnd-attack-del')) {
+                        e.target.closest('.mdnd-attack-row').remove();
+                    }
+                });
+
+                var eqSel = charEditorView.querySelector('#char-equip-select');
+                eqSel.addEventListener('change', function () {
+                    if (eqSel.value) { current.equipRefs.push(parseRef(eqSel.value)); eqSel.value = ''; renderRefChips('equipment'); }
+                });
+                var spSel = charEditorView.querySelector('#char-spell-select');
+                spSel.addEventListener('change', function () {
+                    if (spSel.value) { current.spellRefs.push(parseRef(spSel.value)); spSel.value = ''; renderRefChips('spells'); }
+                });
+            }
+
+            charCreateBtn.addEventListener('click', function () { openEditor(null); });
+            renderCharacterList();
+        }
     }
 
     // --- GESTION DU LANCEUR DE DÉS ---

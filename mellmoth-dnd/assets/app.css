@@ -450,6 +450,273 @@ textarea.mdnd-input {
     margin-top: 0.5rem;
 }
 
+/* =========================================================================
+ *  Fiches de personnage
+ * ===================================================================== */
+.mdnd-section-title {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #f8fafc;
+}
+
+.mdnd-char-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+}
+
+.mdnd-char-card {
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.mdnd-char-card:hover {
+    background: #374151;
+    border-color: #3b82f6;
+}
+
+.mdnd-char-card-name {
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: #f8fafc;
+    margin-bottom: 0.25rem;
+}
+
+.mdnd-char-card-sub {
+    color: #9ca3af;
+    font-size: 0.9rem;
+}
+
+/* Éditeur */
+.mdnd-char-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    margin-bottom: 1rem;
+    background: #111827;
+    border-bottom: 1px solid #374151;
+}
+
+.mdnd-char-toolbar-right {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.mdnd-char-section {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+}
+
+.mdnd-char-section h3 {
+    margin: 0 0 1rem 0;
+    color: #3b82f6;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.mdnd-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.mdnd-field > span {
+    font-weight: 600;
+    color: #9ca3af;
+    font-size: 0.85rem;
+}
+
+.mdnd-field-wide {
+    grid-column: 1 / -1;
+}
+
+.mdnd-readonly {
+    display: flex;
+    align-items: center;
+    background: #111827;
+    color: #f8fafc;
+    font-weight: 600;
+    cursor: default;
+}
+
+.mdnd-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+/* Caractéristiques */
+.mdnd-abilities {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.75rem;
+}
+
+.mdnd-ability {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.75rem 0.5rem;
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+}
+
+.mdnd-ability-name {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    text-align: center;
+}
+
+.mdnd-ability-score {
+    width: 100%;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.mdnd-ability-mod {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #3b82f6;
+}
+
+.mdnd-derived {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.mdnd-derived-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+.mdnd-derived-val {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.mdnd-derived-check {
+    flex-direction: row;
+    cursor: pointer;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+}
+
+/* Sauvegardes & compétences */
+.mdnd-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.mdnd-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #e2e8f0;
+    cursor: pointer;
+}
+
+.mdnd-line em {
+    color: #6b7280;
+    font-size: 0.8rem;
+}
+
+.mdnd-line-total {
+    display: inline-block;
+    min-width: 2.2rem;
+    text-align: center;
+    font-weight: 700;
+    color: #3b82f6;
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 4px;
+    padding: 0.1rem 0;
+}
+
+/* Attaques */
+.mdnd-attack-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr auto;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Pickers liés à la lib */
+.mdnd-ref-picker {
+    margin-bottom: 0.75rem;
+}
+
+.mdnd-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.mdnd-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    background: #374151;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    color: #e2e8f0;
+}
+
+.mdnd-chip-del {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0;
+}
+
+.mdnd-chip-del:hover {
+    color: #f87171;
+}
+
+.mdnd-money {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.mdnd-money .mdnd-field {
+    flex: 1 1 80px;
+    margin-bottom: 0;
+}
+
 .mdnd-dice-result {
     display: flex;
     align-items: center;
@@ -505,6 +772,18 @@ textarea.mdnd-input {
     .mdnd-dice-result {
         font-size: 2.5rem;
         padding: 1.5rem;
+    }
+
+    .mdnd-abilities {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .mdnd-two-col {
+        grid-template-columns: 1fr;
+    }
+
+    .mdnd-attack-row {
+        grid-template-columns: 1fr 1fr;
     }
 }
 

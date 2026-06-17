@@ -45,6 +45,7 @@ final class Router {
             'equipment'      => \Mellmoth_Dnd_Knowledge_Base::get_common_equipment(),
             'userSpells'     => \Mellmoth_Dnd_Knowledge_Base::get_user_spells( $user_id ),
             'userEquipment'  => \Mellmoth_Dnd_Knowledge_Base::get_user_equipment( $user_id ),
+            'characters'     => \Mellmoth_Dnd_Characters::get_all( $user_id ),
             'rest'           => [
                 'root'  => esc_url_raw( rest_url( 'mellmoth-dnd/v1/' ) ),
                 'nonce' => wp_create_nonce( 'wp_rest' ),

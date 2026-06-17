@@ -12,7 +12,11 @@ get_header();
 
     <nav class="mdnd-tabs" role="tablist" aria-label="Navigation du hub">
         <button type="button" class="mdnd-tab is-active" role="tab"
-                data-panel="spells" aria-controls="panel-spells" aria-selected="true">
+                data-panel="characters" aria-controls="panel-characters" aria-selected="true">
+            Fiches perso
+        </button>
+        <button type="button" class="mdnd-tab" role="tab"
+                data-panel="spells" aria-controls="panel-spells" aria-selected="false">
             Sorts
         </button>
         <button type="button" class="mdnd-tab" role="tab"
@@ -25,7 +29,22 @@ get_header();
         </button>
     </nav>
 
-    <section class="mdnd-panel is-active" id="panel-spells" role="tabpanel">
+    <section class="mdnd-panel is-active" id="panel-characters" role="tabpanel">
+        <div id="characters-list-view">
+            <div class="mdnd-kb-controls">
+                <h2 class="mdnd-section-title">Mes personnages</h2>
+                <button type="button" class="mdnd-button mdnd-add-btn" id="character-create-btn">+ Créer un personnage</button>
+            </div>
+            <div id="characters-list" class="mdnd-char-list">
+                <!-- Cartes de personnages générées par JS -->
+            </div>
+        </div>
+        <div id="character-editor-view" hidden>
+            <!-- Éditeur de fiche généré par JS -->
+        </div>
+    </section>
+
+    <section class="mdnd-panel" id="panel-spells" role="tabpanel" hidden>
         <div class="mdnd-kb-controls">
             <input type="search" id="spells-search" placeholder="Rechercher un sort...">
             <label class="mdnd-filter-perso"><input type="checkbox" id="spells-only-user"> Perso uniquement</label>

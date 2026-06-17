@@ -1,7 +1,7 @@
 # Mellmoth Forge — Hub D&D · Base de connaissances
 
 > Document de référence du projet « espace de jeu D&D réservé aux membres » sur le site Mellmoth Forge.
-> Établi le 16/06/2026 · Plugin `mellmoth-dnd` v1.0.8 (Inc. 2).
+> Établi le 16/06/2026 · Plugin `mellmoth-dnd` v1.1.0 (Inc. 3).
 
 -----
 
@@ -83,7 +83,8 @@ Le hub doit fonctionner sur mobile et tablette (le site tourne sur WordPress.com
 - **Inc. 1 — Shell gated** *(livré)* : page dédiée, ajoutée au menu si l’utilisateur connecté a le droit, avec une navigation interne à deux entrées (Scénario / Fiches perso), encore vides.
 - **Inc. 1.1 — Gestion des accès UI** *(livré)* : Interface d'administration native dans WordPress pour octroyer/retirer le droit d'accès au Hub sans passer par du code.
 - **Inc. 2 — Base de connaissances + sorts/équipements custom** *(livré, v1.0.0)* : consultation des sorts/équipements de référence (tableaux triables/filtrables, vue carte mobile, modale de détail) + **ajout/modif/suppression d'entrées personnelles** (privées par utilisateur) via une **API REST** sécurisée. Onglets vides (Scénario / Fiches perso) masqués. Lanceur de dés.
-- **Inc. 3+ (proposés)** : Personnages (PJ/PNJ) + appartenance par campagne · Sessions (log + résumé) · Lore / lieux / quêtes + relations · Couche IA · (le cas échéant) gestion fine des accès dans le hub.
+- **Inc. 3 — Fiches de personnage 5e** *(livré, v1.1.0)* : onglet « Fiches perso » avec création/édition/suppression de fiches officielles complètes (identité, caracs + modificateurs auto, bonus de maîtrise, sauvegardes, 18 compétences, combat, attaques, personnalité, capacités, équipement, sorts, notes). Calculs auto (mods, DD/attaque de sorts, initiative, perception passive). Équipement et sorts **liés à la lib** (références `{source,id}` résolues côté JS). Table `dnd_characters` (sheet JSON). API REST `mellmoth-dnd/v1/characters`.
+- **Inc. 4+ (proposés)** : appartenance par campagne · Sessions (log + résumé) · Lore / lieux / quêtes + relations · Couche IA · (le cas échéant) gestion fine des accès dans le hub.
 
 -----
 
@@ -99,8 +100,9 @@ mellmoth-dnd/
 │   ├── class-router.php        # route /table-de-jeu + garde serveur + assets + localize (données + REST)
 │   ├── class-menu.php          # ajoute l'entrée de menu si autorisé
 │   ├── class-admin-users.php   # UI back-office pour attribuer l'accès par utilisateur
-│   ├── class-knowledge-base.php # tables BDD (référence + perso) + CRUD scoping user_id
-│   └── class-rest.php          # API REST mellmoth-dnd/v1 : CRUD sorts/équipements perso
+│   ├── class-knowledge-base.php # tables BDD (référence + perso) + migration auto + CRUD scoping user_id
+│   ├── class-characters.php    # repository des fiches de perso 5e (table dnd_characters, sheet JSON)
+│   └── class-rest.php          # API REST mellmoth-dnd/v1 : CRUD sorts/équipements/fiches perso
 ├── templates/
 │   └── app.php                 # la page : nav par onglets + tableaux (sorts/équipement) + cartes mobile + lanceur de dés
 └── assets/

@@ -12,7 +12,7 @@ class Mellmoth_Dnd_Knowledge_Base
      * Version du schéma BDD. À incrémenter à chaque changement de table/colonne
      * pour déclencher la migration auto (cf. maybe_upgrade()).
      */
-    const DB_VERSION = '2';
+    const DB_VERSION = '3';
 
     public static function get_instance()
     {
@@ -123,6 +123,11 @@ class Mellmoth_Dnd_Knowledge_Base
             KEY user_id (user_id)
         ) $charset_collate;";
         dbDelta($sql_user_equipment);
+
+        // Table des fiches de personnage (repository dédié).
+        if ( class_exists( 'Mellmoth_Dnd_Characters' ) ) {
+            Mellmoth_Dnd_Characters::create_table( $charset_collate );
+        }
 
         self::seed_spells();
         self::seed_equipment();

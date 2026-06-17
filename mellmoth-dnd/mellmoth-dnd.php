@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Mellmoth D&D Hub
  * Description: Espace de jeu D&D reserve aux membres autorises.
- * Version:     1.0.8
+ * Version:     1.1.0
  * Author:      Mellmoth Forge
  * Requires PHP: 8.0
  * Text Domain: mellmoth-dnd
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /* -------------------------------------------------------------------------
  *  Constantes / reglages  (les seuls "boutons" que tu touches)
  * ---------------------------------------------------------------------- */
-const VERSION       = '1.0.8';
+const VERSION       = '1.1.0';
 const CAPABILITY    = 'access_dnd_hub'; // Droit requis pour voir le hub.
 const ROUTE_SLUG    = 'table-de-jeu';   // URL publique : /table-de-jeu
 const MENU_LABEL    = 'Table de jeu';   // Libelle affiche dans le menu.
@@ -31,7 +31,8 @@ require_once PATH . 'includes/class-router.php';
 require_once PATH . 'includes/class-menu.php';
 require_once PATH . 'includes/class-admin-users.php';
 require_once PATH . 'includes/class-knowledge-base.php'; // Nouvel import pour la base de connaissances
-require_once PATH . 'includes/class-rest.php';           // API REST des sorts/équipements personnels
+require_once PATH . 'includes/class-characters.php';     // Repository des fiches de personnage
+require_once PATH . 'includes/class-rest.php';           // API REST des sorts/équipements/fiches
 
 /* -------------------------------------------------------------------------
  *  Activation / desactivation
