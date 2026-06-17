@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Mellmoth D&D Hub
  * Description: Espace de jeu D&D reserve aux membres autorises.
- * Version:     1.0.5
+ * Version:     1.0.8
  * Author:      Mellmoth Forge
  * Requires PHP: 8.0
  * Text Domain: mellmoth-dnd
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /* -------------------------------------------------------------------------
  *  Constantes / reglages  (les seuls "boutons" que tu touches)
  * ---------------------------------------------------------------------- */
-const VERSION       = '1.0.5';
+const VERSION       = '1.0.8';
 const CAPABILITY    = 'access_dnd_hub'; // Droit requis pour voir le hub.
 const ROUTE_SLUG    = 'table-de-jeu';   // URL publique : /table-de-jeu
 const MENU_LABEL    = 'Table de jeu';   // Libelle affiche dans le menu.
@@ -57,6 +57,7 @@ add_action( 'template_redirect', [ Router::class, 'maybe_render' ] );
 add_action( 'wp_enqueue_scripts', [ Router::class, 'maybe_enqueue_assets' ] );
 add_action( 'rest_api_init', [ Rest::class, 'register_routes' ] );
 add_filter( 'wp_nav_menu_items', [ Menu::class, 'maybe_add_item' ], 10, 2 );
+add_filter( 'wp_page_menu', [ Menu::class, 'maybe_add_item_to_page_menu' ], 10, 2 ); // Fallback quand aucun menu n'est assigné (ex. burger Astra).
 
 // Initialisation de l'administration des utilisateurs
 AdminUsers::init();
