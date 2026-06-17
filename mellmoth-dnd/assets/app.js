@@ -40,6 +40,8 @@
     // Hash = `#onglet` ou `#onglet/idItem`. Permet de conserver l'onglet (et la modale
     // ouverte) après un F5 et de partager un lien direct.
     var openKbItem = null; // Assigné plus bas, une fois les données KB disponibles.
+    var openCharacterById = null; // Idem pour rouvrir une fiche de perso depuis l'URL.
+    var openCharacterHash = null; // Hash de la fiche actuellement ouverte (ex. "characters/5"), sinon null.
 
     function getActiveTab() {
         var active = root.querySelector('.mdnd-tab.is-active');
@@ -81,6 +83,7 @@
     tabs.forEach(function (tab) {
         tab.addEventListener('click', function () {
             var target = tab.dataset.panel;
+            openCharacterHash = null; // On quitte le contexte fiche.
             activateTab(target);
             setHash(target); // L'URL reflète l'onglet courant.
         });
@@ -104,10 +107,11 @@
         modalBody.innerHTML = '';
         document.body.style.overflow = ''; // Réactiver le défilement
 
-        // Le hash ne pointe plus vers un élément : on revient à l'onglet seul.
-        var tab = getActiveTab();
-        if (tab) {
-            setHash(tab);
+        // Le hash ne pointe plus vers un élément : on revient au contexte courant
+        // (fiche de perso ouverte le cas échéant, sinon l'onglet seul).
+        var base = openCharacterHash || getActiveTab();
+        if (base) {
+            setHash(base);
         }
     }
 
@@ -684,11 +688,54 @@
                 return '<label class="mdnd-field mdnd-field-wide"><span>' + escapeHtml(label) + '</span>'
                     + '<textarea class="mdnd-input" rows="3" data-path="' + path + '">' + escapeHtml(value == null ? '' : value) + '</textarea></label>';
             }
-            function refOptions(tabKey) {
-                return (datasets[tabKey] || []).map(function (it) {
-                    return '<option value="' + escapeHtml(it.source) + ':' + escapeHtml(it.id) + '">'
-                        + escapeHtml(it.name) + (it.source === 'user' ? ' (perso)' : '') + '</option>';
-                }).join('');
+            // Normalisation pour le filtre : minuscules + suppression des accents.
+            function comboNorm(s) {
+                s = String(s).toLowerCase();
+                try { if (s.normalize) { s = s.normalize('NFD').replace(/\p{Diacritic}/gu, ''); } } catch (e) {}
+                return s;
+            }
+
+            // Combobox filtrable pour ajouter un sort/objet depuis la lib.
+            function setupCombo(tabKey) {
+                var combo = charEditorView.querySelector('.mdnd-combo[data-combo="' + tabKey + '"]');
+                if (!combo) { return; }
+                var input = combo.querySelector('.mdnd-combo-input');
+                var list = combo.querySelector('.mdnd-combo-list');
+                var refs = (tabKey === 'equipment') ? current.equipRefs : current.spellRefs;
+
+                function renderList() {
+                    var q = comboNorm(input.value);
+                    var matches = (datasets[tabKey] || []).filter(function (it) {
+                        return !q || comboNorm(it.name).indexOf(q) !== -1;
+                    }).slice(0, 50); // borne pour rester fluide
+                    list.innerHTML = '';
+                    if (!matches.length) {
+                        list.innerHTML = '<div class="mdnd-combo-empty">Aucun résultat</div>';
+                    } else {
+                        matches.forEach(function (it) {
+                            var opt = document.createElement('button');
+                            opt.type = 'button';
+                            opt.className = 'mdnd-combo-item';
+                            opt.textContent = it.name + (it.source === 'user' ? ' (perso)' : '');
+                            // mousedown (pas click) pour s'exécuter avant le blur du champ.
+                            opt.addEventListener('mousedown', function (e) {
+                                e.preventDefault();
+                                refs.push({ source: it.source, id: it.id });
+                                input.value = '';
+                                list.hidden = true;
+                                renderRefChips(tabKey);
+                            });
+                            list.appendChild(opt);
+                        });
+                    }
+                    list.hidden = false;
+                }
+
+                input.addEventListener('focus', renderList);
+                input.addEventListener('input', renderList);
+                input.addEventListener('blur', function () {
+                    setTimeout(function () { list.hidden = true; }, 150);
+                });
             }
             function attackRow(atk) {
                 atk = atk || {};
@@ -794,7 +841,7 @@
                     + '<section class="mdnd-char-section"><h3>Maîtrises & langues</h3>' + chArea('Armures, armes, outils, langues…', 'proficiencies', g('proficiencies')) + '</section>'
 
                     + '<section class="mdnd-char-section"><h3>Équipement</h3>'
-                    +   '<div class="mdnd-ref-picker"><select class="mdnd-input" id="char-equip-select"><option value="">— Ajouter un objet depuis la lib —</option>' + refOptions('equipment') + '</select></div>'
+                    +   '<div class="mdnd-combo mdnd-ref-picker" data-combo="equipment"><input type="search" class="mdnd-input mdnd-combo-input" placeholder="Ajouter un objet — tapez pour filtrer…"><div class="mdnd-combo-list" hidden></div></div>'
                     +   '<div class="mdnd-chips" id="char-equip-chips"></div>'
                     +   chArea('Autre équipement (texte libre)', 'equipment.freeText', g('equipment.freeText'))
                     +   '<div class="mdnd-money">'
@@ -812,7 +859,7 @@
                     +     '<label class="mdnd-field"><span>DD de sauvegarde des sorts</span><div class="mdnd-input mdnd-readonly" data-spell-dc>—</div></label>'
                     +     '<label class="mdnd-field"><span>Bonus d\'attaque des sorts</span><div class="mdnd-input mdnd-readonly" data-spell-atk>—</div></label>'
                     +   '</div>'
-                    +   '<div class="mdnd-ref-picker"><select class="mdnd-input" id="char-spell-select"><option value="">— Ajouter un sort depuis la lib —</option>' + refOptions('spells') + '</select></div>'
+                    +   '<div class="mdnd-combo mdnd-ref-picker" data-combo="spells"><input type="search" class="mdnd-input mdnd-combo-input" placeholder="Ajouter un sort — tapez pour filtrer…"><div class="mdnd-combo-list" hidden></div></div>'
                     +   '<div class="mdnd-chips" id="char-spell-chips"></div>'
                     +   chArea('Emplacements de sorts (par niveau)', 'spells.slots', g('spells.slots'))
                     +   chArea('Notes de sorts', 'spells.notes', g('spells.notes'))
@@ -870,23 +917,43 @@
                     return String(it.id) === String(ref.id) && String(it.source) === String(ref.source);
                 })[0];
             }
-            function parseRef(value) {
-                var i = value.indexOf(':');
-                return { source: value.slice(0, i), id: value.slice(i + 1) };
-            }
             function renderRefChips(tabKey) {
                 var refs = (tabKey === 'equipment') ? current.equipRefs : current.spellRefs;
                 var container = charEditorView.querySelector(tabKey === 'equipment' ? '#char-equip-chips' : '#char-spell-chips');
                 container.innerHTML = '';
+                var type = (tabKey === 'equipment') ? 'equipment' : 'spell';
                 refs.forEach(function (ref, idx) {
                     var item = resolveRef(tabKey, ref);
                     var chip = document.createElement('span');
                     chip.className = 'mdnd-chip';
-                    chip.innerHTML = escapeHtml(item ? item.name : '(supprimé)') + ' <button type="button" class="mdnd-chip-del">×</button>';
-                    chip.querySelector('.mdnd-chip-del').addEventListener('click', function () {
+
+                    if (item) {
+                        // Nom cliquable : ouvre la fiche de détail (lecture seule) en popup.
+                        var nameBtn = document.createElement('button');
+                        nameBtn.type = 'button';
+                        nameBtn.className = 'mdnd-chip-name';
+                        nameBtn.textContent = item.name;
+                        nameBtn.addEventListener('click', function () {
+                            openModal(buildDetailContent(item, type));
+                        });
+                        chip.appendChild(nameBtn);
+                    } else {
+                        var miss = document.createElement('span');
+                        miss.className = 'mdnd-chip-name mdnd-chip-missing';
+                        miss.textContent = '(supprimé)';
+                        chip.appendChild(miss);
+                    }
+
+                    var del = document.createElement('button');
+                    del.type = 'button';
+                    del.className = 'mdnd-chip-del';
+                    del.textContent = '×';
+                    del.addEventListener('click', function () {
                         refs.splice(idx, 1);
                         renderRefChips(tabKey);
                     });
+                    chip.appendChild(del);
+
                     container.appendChild(chip);
                 });
             }
@@ -929,13 +996,26 @@
                 renderRefChips('spells');
                 recompute();
                 window.scrollTo(0, 0);
+
+                // Persistance au refresh : seules les fiches déjà enregistrées (avec id)
+                // peuvent être restaurées par l'URL.
+                openCharacterHash = current.id ? ('characters/' + current.id) : null;
+                setHash(openCharacterHash || 'characters');
             }
 
             function closeEditor() {
                 charEditorView.hidden = true;
                 charEditorView.innerHTML = '';
                 charListView.hidden = false;
+                openCharacterHash = null;
+                setHash('characters');
             }
+
+            // Exposé pour la restauration via l'URL (#characters/<id>).
+            openCharacterById = function (id) {
+                var c = characters.filter(function (x) { return String(x.id) === String(id); })[0];
+                if (c) { openEditor(c); }
+            };
 
             function upsertCharacter(row) {
                 for (var i = 0; i < characters.length; i++) {
@@ -987,14 +1067,8 @@
                     }
                 });
 
-                var eqSel = charEditorView.querySelector('#char-equip-select');
-                eqSel.addEventListener('change', function () {
-                    if (eqSel.value) { current.equipRefs.push(parseRef(eqSel.value)); eqSel.value = ''; renderRefChips('equipment'); }
-                });
-                var spSel = charEditorView.querySelector('#char-spell-select');
-                spSel.addEventListener('change', function () {
-                    if (spSel.value) { current.spellRefs.push(parseRef(spSel.value)); spSel.value = ''; renderRefChips('spells'); }
-                });
+                setupCombo('equipment');
+                setupCombo('spells');
             }
 
             charCreateBtn.addEventListener('click', function () { openEditor(null); });
@@ -1058,7 +1132,9 @@
         if (!activateTab(tab)) {
             return; // Hash invalide : on garde l'onglet par défaut.
         }
-        if (itemId && openKbItem) {
+        if (tab === 'characters') {
+            if (itemId && openCharacterById) { openCharacterById(itemId); }
+        } else if (itemId && openKbItem) {
             openKbItem(tab, itemId);
         }
     })();

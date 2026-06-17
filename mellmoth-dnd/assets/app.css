@@ -697,6 +697,47 @@ textarea.mdnd-input {
     margin-bottom: 0.75rem;
 }
 
+/* Combobox filtrable */
+.mdnd-combo {
+    position: relative;
+}
+
+.mdnd-combo-list {
+    position: absolute;
+    z-index: 20;
+    left: 0;
+    right: 0;
+    margin-top: 2px;
+    max-height: 240px;
+    overflow-y: auto;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.mdnd-combo-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: #e2e8f0;
+    padding: 0.5rem 0.75rem;
+    font: inherit;
+    cursor: pointer;
+}
+
+.mdnd-combo-item:hover {
+    background: #374151;
+}
+
+.mdnd-combo-empty {
+    padding: 0.5rem 0.75rem;
+    color: #9ca3af;
+    font-style: italic;
+}
+
 .mdnd-chips {
     display: flex;
     flex-wrap: wrap;
@@ -713,6 +754,27 @@ textarea.mdnd-input {
     border-radius: 999px;
     font-size: 0.9rem;
     color: #e2e8f0;
+}
+
+.mdnd-chip-name {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: #e2e8f0;
+    cursor: pointer;
+}
+
+.mdnd-chip-name:hover {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.mdnd-chip-missing {
+    color: #9ca3af;
+    cursor: default;
+    text-decoration: none;
 }
 
 .mdnd-chip-del {

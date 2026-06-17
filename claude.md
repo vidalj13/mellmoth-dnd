@@ -1,7 +1,7 @@
 # Mellmoth Forge — Hub D&D · Base de connaissances
 
 > Document de référence du projet « espace de jeu D&D réservé aux membres » sur le site Mellmoth Forge.
-> Établi le 16/06/2026 · Plugin `mellmoth-dnd` v1.1.3 (Inc. 3).
+> Établi le 16/06/2026 · Plugin `mellmoth-dnd` v1.1.5 (Inc. 3).
 
 -----
 
