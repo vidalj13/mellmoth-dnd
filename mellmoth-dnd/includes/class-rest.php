@@ -193,7 +193,9 @@ final class Rest {
         if ( is_array( $value ) ) {
             $out = array();
             foreach ( $value as $k => $v ) {
-                $key         = is_string( $k ) ? sanitize_key( $k ) : $k;
+                // On préserve la casse des clés (camelCase du sheet) tout en restant sûr :
+                // sanitize_key() mettrait en minuscules et casserait hpMax, proficiencyBonusOverride, etc.
+                $key         = is_string( $k ) ? preg_replace( '/[^A-Za-z0-9_\-]/', '', $k ) : $k;
                 $out[ $key ] = self::sanitize_sheet( $v );
             }
             return $out;

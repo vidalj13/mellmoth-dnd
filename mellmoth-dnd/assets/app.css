@@ -595,6 +595,22 @@ textarea.mdnd-input {
     color: #3b82f6;
 }
 
+.mdnd-ability-modcap {
+    font-size: 0.65rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.mdnd-ability-mod-input {
+    width: 100%;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #3b82f6;
+    padding: 0.2rem;
+}
+
 .mdnd-derived {
     display: flex;
     flex-wrap: wrap;
@@ -619,6 +635,14 @@ textarea.mdnd-input {
     font-size: 1.4rem;
     font-weight: 700;
     color: #f8fafc;
+}
+
+.mdnd-derived-input {
+    width: 4rem;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    padding: 0.25rem;
 }
 
 .mdnd-derived-check {

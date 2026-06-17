@@ -612,8 +612,9 @@
                 return {
                     identity: { name: '', class: '', level: 1, race: '', background: '', alignment: '', xp: '', playerName: '' },
                     abilities: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
-                    saves: {}, skills: {}, inspiration: false,
-                    combat: { ac: '', initiativeMisc: 0, speed: '', hpMax: '', hpCurrent: '', hpTemp: '', hitDiceTotal: '', hitDiceType: '', deathSuccess: 0, deathFail: 0 },
+                    abilityModOverride: { str: '', dex: '', con: '', int: '', wis: '', cha: '' },
+                    saves: {}, skills: {}, inspiration: false, proficiencyBonusOverride: '',
+                    combat: { ac: '', initiativeOverride: '', speed: '', hpMax: '', hpCurrent: '', hpTemp: '', hitDice: '', deathSuccess: 0, deathFail: 0 },
                     attacks: [],
                     personality: { traits: '', ideals: '', bonds: '', flaws: '' },
                     features: '', proficiencies: '',
@@ -627,7 +628,7 @@
             function mergeSheet(stored) {
                 var base = emptySheet();
                 if (!stored || typeof stored !== 'object') { return base; }
-                ['identity', 'abilities', 'combat', 'personality'].forEach(function (grp) {
+                ['identity', 'abilities', 'abilityModOverride', 'combat', 'personality'].forEach(function (grp) {
                     if (stored[grp]) {
                         Object.keys(base[grp]).forEach(function (k) {
                             if (stored[grp][k] != null) { base[grp][k] = stored[grp][k]; }
@@ -637,6 +638,7 @@
                 base.saves = stored.saves || {};
                 base.skills = stored.skills || {};
                 base.inspiration = !!stored.inspiration;
+                base.proficiencyBonusOverride = (stored.proficiencyBonusOverride != null) ? stored.proficiencyBonusOverride : '';
                 base.attacks = Array.isArray(stored.attacks) ? stored.attacks : [];
                 base.features = stored.features || '';
                 base.proficiencies = stored.proficiencies || '';
@@ -707,7 +709,8 @@
                     return '<div class="mdnd-ability">'
                         + '<div class="mdnd-ability-name">' + a[1] + '</div>'
                         + '<input class="mdnd-input mdnd-ability-score" type="number" data-path="abilities.' + a[0] + '" value="' + escapeHtml(score == null ? 10 : score) + '">'
-                        + '<div class="mdnd-ability-mod" data-mod="' + a[0] + '">+0</div>'
+                        + '<div class="mdnd-ability-modcap">modif.</div>'
+                        + '<input class="mdnd-input mdnd-ability-mod-input" type="number" data-path="abilityModOverride.' + a[0] + '" data-mod-input="' + a[0] + '" value="' + escapeHtml(g('abilityModOverride.' + a[0])) + '" placeholder="+0" title="Vide = auto (calculé depuis la caractéristique)">'
                         + '</div>';
                 }).join('');
 
@@ -752,7 +755,7 @@
                     + '<section class="mdnd-char-section"><h3>Caractéristiques</h3>'
                     +   '<div class="mdnd-abilities">' + abilitiesHtml + '</div>'
                     +   '<div class="mdnd-derived">'
-                    +     '<div class="mdnd-derived-box"><span class="mdnd-derived-val" data-prof-bonus>+0</span><span>Bonus de maîtrise</span></div>'
+                    +     '<div class="mdnd-derived-box"><input class="mdnd-input mdnd-derived-input" type="number" data-path="proficiencyBonusOverride" data-prof-input value="' + escapeHtml(g('proficiencyBonusOverride')) + '" placeholder="+0"><span>Bonus de maîtrise <em>(vide = auto)</em></span></div>'
                     +     '<div class="mdnd-derived-box"><span class="mdnd-derived-val" data-passive-perception>10</span><span>Perception passive</span></div>'
                     +     '<label class="mdnd-derived-box mdnd-derived-check"><input type="checkbox" data-path="inspiration"' + (g('inspiration') ? ' checked' : '') + '><span>Inspiration</span></label>'
                     +   '</div>'
@@ -765,14 +768,12 @@
 
                     + '<section class="mdnd-char-section"><h3>Combat</h3><div class="mdnd-grid">'
                     +   chField('Classe d\'armure (CA)', 'combat.ac', 'number', g('combat.ac'))
-                    +   '<label class="mdnd-field"><span>Initiative</span><div class="mdnd-input mdnd-readonly" data-init-total>+0</div></label>'
-                    +   chField('Initiative (divers)', 'combat.initiativeMisc', 'number', g('combat.initiativeMisc'))
+                    +   '<label class="mdnd-field"><span>Initiative <em>(vide = auto)</em></span><input class="mdnd-input" type="number" data-path="combat.initiativeOverride" data-init-input value="' + escapeHtml(g('combat.initiativeOverride')) + '" placeholder="+0"></label>'
                     +   chField('Vitesse', 'combat.speed', 'text', g('combat.speed'))
                     +   chField('PV max', 'combat.hpMax', 'number', g('combat.hpMax'))
                     +   chField('PV actuels', 'combat.hpCurrent', 'number', g('combat.hpCurrent'))
                     +   chField('PV temporaires', 'combat.hpTemp', 'number', g('combat.hpTemp'))
-                    +   chField('Dés de vie (total)', 'combat.hitDiceTotal', 'text', g('combat.hitDiceTotal'))
-                    +   chField('Type de dé de vie', 'combat.hitDiceType', 'text', g('combat.hitDiceType'))
+                    +   chField('Dé de vie', 'combat.hitDice', 'text', g('combat.hitDice'))
                     +   chField('Jets de mort — réussites', 'combat.deathSuccess', 'number', g('combat.deathSuccess'), 'min="0" max="3"')
                     +   chField('Jets de mort — échecs', 'combat.deathFail', 'number', g('combat.deathFail'), 'min="0" max="3"')
                     + '</div></section>'
@@ -822,33 +823,41 @@
 
             /* ---------- Calculs auto ---------- */
             function recompute() {
-                var scores = {};
+                // Modificateur effectif par carac : override manuel si rempli, sinon auto (depuis le score).
+                var mods = {};
                 ABILITIES.forEach(function (a) {
-                    var inp = charEditorView.querySelector('[data-path="abilities.' + a[0] + '"]');
-                    scores[a[0]] = parseInt(inp.value, 10) || 10;
-                    charEditorView.querySelector('[data-mod="' + a[0] + '"]').textContent = fmtMod(abilityMod(scores[a[0]]));
+                    var scoreInp = charEditorView.querySelector('[data-path="abilities.' + a[0] + '"]');
+                    var auto = abilityMod(parseInt(scoreInp.value, 10) || 10);
+                    var ovInp = charEditorView.querySelector('[data-mod-input="' + a[0] + '"]');
+                    ovInp.placeholder = fmtMod(auto);
+                    mods[a[0]] = (ovInp.value !== '') ? (parseInt(ovInp.value, 10) || 0) : auto;
                 });
+
                 var level = parseInt(charEditorView.querySelector('[data-path="identity.level"]').value, 10) || 1;
-                var pb = profBonus(level);
-                charEditorView.querySelector('[data-prof-bonus]').textContent = fmtMod(pb);
+                var autoPb = profBonus(level);
+                var pbInput = charEditorView.querySelector('[data-prof-input]');
+                pbInput.placeholder = fmtMod(autoPb); // indique l'auto quand le champ est vide
+                var pb = (pbInput.value !== '') ? (parseInt(pbInput.value, 10) || 0) : autoPb;
 
                 ABILITIES.forEach(function (a) {
                     var prof = charEditorView.querySelector('[data-path="saves.' + a[0] + '"]').checked;
-                    charEditorView.querySelector('[data-save-total="' + a[0] + '"]').textContent = fmtMod(abilityMod(scores[a[0]]) + (prof ? pb : 0));
+                    charEditorView.querySelector('[data-save-total="' + a[0] + '"]').textContent = fmtMod(mods[a[0]] + (prof ? pb : 0));
                 });
                 SKILLS.forEach(function (s) {
                     var prof = charEditorView.querySelector('[data-path="skills.' + s[0] + '"]').checked;
-                    charEditorView.querySelector('[data-skill-total="' + s[0] + '"]').textContent = fmtMod(abilityMod(scores[s[2]]) + (prof ? pb : 0));
+                    charEditorView.querySelector('[data-skill-total="' + s[0] + '"]').textContent = fmtMod(mods[s[2]] + (prof ? pb : 0));
                 });
-                var initMisc = parseInt(charEditorView.querySelector('[data-path="combat.initiativeMisc"]').value, 10) || 0;
-                charEditorView.querySelector('[data-init-total]').textContent = fmtMod(abilityMod(scores.dex) + initMisc);
+
+                // Initiative : auto = mod de Dex (le champ override affiche l'auto en placeholder).
+                charEditorView.querySelector('[data-init-input]').placeholder = fmtMod(mods.dex);
+
                 var percProf = charEditorView.querySelector('[data-path="skills.perception"]').checked;
-                charEditorView.querySelector('[data-passive-perception]').textContent = 10 + abilityMod(scores.wis) + (percProf ? pb : 0);
+                charEditorView.querySelector('[data-passive-perception]').textContent = 10 + mods.wis + (percProf ? pb : 0);
 
                 var ab = charEditorView.querySelector('[data-path="spells.ability"]').value;
-                if (ab && scores[ab] != null) {
-                    charEditorView.querySelector('[data-spell-dc]').textContent = 8 + pb + abilityMod(scores[ab]);
-                    charEditorView.querySelector('[data-spell-atk]').textContent = fmtMod(pb + abilityMod(scores[ab]));
+                if (ab && mods[ab] != null) {
+                    charEditorView.querySelector('[data-spell-dc]').textContent = 8 + pb + mods[ab];
+                    charEditorView.querySelector('[data-spell-atk]').textContent = fmtMod(pb + mods[ab]);
                 } else {
                     charEditorView.querySelector('[data-spell-dc]').textContent = '—';
                     charEditorView.querySelector('[data-spell-atk]').textContent = '—';
