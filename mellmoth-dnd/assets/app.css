@@ -957,6 +957,25 @@ textarea.mdnd-input {
     color: #f8fafc;
 }
 
+/* Champs numériques étroits du combat : masquer les flèches (spinners) qui,
+   dans un champ de 48px, poussaient la valeur hors du cadre (invisible hors focus). */
+.mdnd-init-num .mdnd-input,
+.mdnd-hp-input,
+.mdnd-hp-temp .mdnd-input {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.mdnd-init-num .mdnd-input::-webkit-outer-spin-button,
+.mdnd-init-num .mdnd-input::-webkit-inner-spin-button,
+.mdnd-hp-input::-webkit-outer-spin-button,
+.mdnd-hp-input::-webkit-inner-spin-button,
+.mdnd-hp-temp .mdnd-input::-webkit-outer-spin-button,
+.mdnd-hp-temp .mdnd-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 .mdnd-init-main {
     flex: 1 1 auto;
     min-width: 0;
@@ -1061,6 +1080,38 @@ textarea.mdnd-input {
     font-variant-numeric: tabular-nums;
 }
 
+/* PV temporaires : pastille dans le total + petit champ PVT dans les actions. */
+.mdnd-hp-total__temp {
+    margin-left: auto;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.14);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    border-radius: 999px;
+    padding: 0.05rem 0.4rem;
+}
+
+.mdnd-hp-temp {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.25rem;
+}
+
+.mdnd-hp-temp > span {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+}
+
+.mdnd-hp-temp .mdnd-input {
+    width: 44px;
+    text-align: center;
+    padding: 0.35rem 0.25rem;
+}
+
 .mdnd-hp-bar {
     height: 6px;
     border-radius: 999px;
@@ -1152,6 +1203,27 @@ textarea.mdnd-input {
 .mdnd-combat-empty__sub {
     margin: 0 0 1.1rem;
     font-size: 0.85rem;
+}
+
+/* Info-bulle des états (positionnée en JS au survol d'une pastille). */
+.mdnd-tip {
+    position: fixed;
+    z-index: 1000;
+    transform: translateY(calc(-100% - 8px));
+    max-width: 280px;
+    padding: 0.5rem 0.7rem;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    color: #e2e8f0;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+}
+
+.mdnd-tip[hidden] {
+    display: none;
 }
 
 /* ≤900px — bascule des lignes denses en cartes empilées. */

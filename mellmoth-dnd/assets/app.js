@@ -1227,6 +1227,7 @@
                 ac: (data.ac != null && data.ac !== '') ? data.ac : '',
                 hpMax: hpMax,
                 hpCurrent: hpCurrent,
+                hpTemp: parseInt(data.hpTemp, 10) || 0,
                 conditions: Array.isArray(data.conditions) ? data.conditions : []
             });
             sortByInitiative();
@@ -1248,7 +1249,8 @@
                 initiative: init,
                 ac: (combat.ac != null && combat.ac !== '') ? combat.ac : '',
                 hpMax: combat.hpMax,
-                hpCurrent: (combat.hpCurrent != null && combat.hpCurrent !== '') ? combat.hpCurrent : combat.hpMax
+                hpCurrent: (combat.hpCurrent != null && combat.hpCurrent !== '') ? combat.hpCurrent : combat.hpMax,
+                hpTemp: combat.hpTemp
             };
         }
 
@@ -1261,9 +1263,28 @@
         function adjustHp(id, delta) {
             var c = byId(id);
             if (!c) { return; }
-            var v = Math.max(0, (c.hpCurrent || 0) + delta);
-            if (c.hpMax > 0) { v = Math.min(c.hpMax, v); }
-            c.hpCurrent = v;
+            if (delta < 0) {
+                // Les dégâts sont d'abord absorbés par les PV temporaires (règle 5e).
+                var dmg = -delta;
+                var temp = c.hpTemp || 0;
+                if (temp > 0) {
+                    var absorbed = Math.min(temp, dmg);
+                    c.hpTemp = temp - absorbed;
+                    dmg -= absorbed;
+                }
+                c.hpCurrent = Math.max(0, (c.hpCurrent || 0) - dmg);
+            } else {
+                // Les soins ne restaurent pas les PV temporaires et ne dépassent pas le max.
+                var v = (c.hpCurrent || 0) + delta;
+                if (c.hpMax > 0) { v = Math.min(c.hpMax, v); }
+                c.hpCurrent = Math.max(0, v);
+            }
+            persistAndRender();
+        }
+        function setTemp(id, value) {
+            var c = byId(id);
+            if (!c) { return; }
+            c.hpTemp = Math.max(0, parseInt(value, 10) || 0);
             persistAndRender();
         }
 
@@ -1346,8 +1367,9 @@
                 : '<span class="mdnd-badge">Monstre</span>';
             var koBadge = ko ? '<span class="mdnd-badge mdnd-badge-danger">K.O.</span>' : '';
 
+            var hpTemp = c.hpTemp || 0;
             var chips = (c.conditions || []).map(function (cond) {
-                return '<span class="mdnd-chip" title="' + escapeHtml(condDesc(cond)) + '">' + escapeHtml(cond)
+                return '<span class="mdnd-chip" data-desc="' + escapeHtml(condDesc(cond)) + '">' + escapeHtml(cond)
                     + '<button class="mdnd-chip-del" type="button" data-action="del-condition" data-cond="'
                     + escapeHtml(cond) + '" aria-label="Retirer ' + escapeHtml(cond) + '">×</button></span>';
             }).join('');
@@ -1359,12 +1381,16 @@
                 +   '<div class="mdnd-chip-list">' + chips + '<button class="mdnd-chip-add" type="button" data-action="add-condition">+ État</button></div>'
                 + '</div>'
                 + '<div class="mdnd-hp">'
-                +   '<div class="mdnd-hp-total"><span class="mdnd-hp-total__label">PV</span><span class="mdnd-hp-total__value">' + escapeHtml(c.hpCurrent) + ' / ' + escapeHtml(pvMax) + '</span></div>'
+                +   '<div class="mdnd-hp-total"><span class="mdnd-hp-total__label">PV</span>'
+                +     '<span class="mdnd-hp-total__value">' + escapeHtml(c.hpCurrent) + ' / ' + escapeHtml(pvMax) + '</span>'
+                +     (hpTemp > 0 ? '<span class="mdnd-hp-total__temp" title="PV temporaires">+' + escapeHtml(hpTemp) + '</span>' : '')
+                +   '</div>'
                 +   '<div class="mdnd-hp-bar' + bar + '"><i style="width:' + pct + '%"></i></div>'
                 +   '<div class="mdnd-hp-actions">'
                 +     '<button class="mdnd-button mdnd-button-danger" type="button" data-action="dmg" aria-label="Dégâts">−</button>'
                 +     '<input class="mdnd-input mdnd-hp-input" type="number" placeholder="0" data-action="amount" aria-label="Montant">'
                 +     '<button class="mdnd-button mdnd-button-secondary" type="button" data-action="heal" aria-label="Soin">+</button>'
+                +     '<label class="mdnd-hp-temp"><span>PVT</span><input class="mdnd-input" type="number" min="0" placeholder="0" value="' + (hpTemp > 0 ? escapeHtml(hpTemp) : '') + '" data-action="temp" aria-label="PV temporaires"></label>'
                 +   '</div>'
                 + '</div>'
                 + '<div class="mdnd-stat"><span class="mdnd-stat__label">CA</span><span class="mdnd-stat__value">' + escapeHtml(c.ac || '—') + '</span></div>'
@@ -1410,16 +1436,44 @@
             }
         });
 
-        // Édition de l'initiative (au blur) : réordonne la liste.
+        // Édition au blur des champs de la ligne (initiative, PV temporaires).
         listEl.addEventListener('change', function (e) {
-            var actionEl = e.target.closest('[data-action="init"]');
+            var actionEl = e.target.closest('[data-action="init"], [data-action="temp"]');
             if (!actionEl) { return; }
             var row = e.target.closest('.mdnd-init-row');
             var c = row ? byId(row.getAttribute('data-id')) : null;
             if (!c) { return; }
-            c.initiative = parseInt(actionEl.value, 10) || 0;
-            sortByInitiative();
-            persistAndRender();
+            if (actionEl.getAttribute('data-action') === 'temp') {
+                setTemp(c.id, actionEl.value);
+            } else {
+                c.initiative = parseInt(actionEl.value, 10) || 0;
+                sortByInitiative();
+                persistAndRender();
+            }
+        });
+
+        // Info-bulle custom au survol d'un état (détail de la condition).
+        var condTip = null;
+        function hideTip() { if (condTip) { condTip.hidden = true; } }
+        listEl.addEventListener('mouseover', function (e) {
+            var chip = e.target.closest('.mdnd-chip[data-desc]');
+            if (!chip) { return; }
+            var desc = chip.getAttribute('data-desc');
+            if (!desc) { return; }
+            if (!condTip) {
+                condTip = document.createElement('div');
+                condTip.className = 'mdnd-tip';
+                document.body.appendChild(condTip);
+            }
+            condTip.textContent = desc;
+            condTip.hidden = false;
+            var r = chip.getBoundingClientRect();
+            var left = Math.max(8, Math.min(r.left, window.innerWidth - condTip.offsetWidth - 8));
+            condTip.style.left = Math.round(left) + 'px';
+            condTip.style.top = Math.round(r.top) + 'px';
+        });
+        listEl.addEventListener('mouseout', function (e) {
+            if (e.target.closest('.mdnd-chip[data-desc]')) { hideTip(); }
         });
 
         // --- Modale d'ajout ---
