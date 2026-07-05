@@ -569,6 +569,10 @@
          * ================================================================== */
         var characters = (dndKnowledgeBase.characters || []).slice();
 
+        // Exposé pour le tracker de combat : liste vivante des fiches (inclut les
+        // créations/suppressions de la session, pas seulement l'état au chargement).
+        window.mdndGetCharacters = function () { return characters; };
+
         var charListView      = document.getElementById('characters-list-view');
         var charEditorView    = document.getElementById('character-editor-view');
         var charListContainer = document.getElementById('characters-list');
@@ -1146,9 +1150,13 @@
         var fCa = document.getElementById('combat-add-ca');
         var addConfirmBtn = document.getElementById('combat-add-confirm');
 
-        // Fiches de perso disponibles (localisées côté serveur).
-        var CHARACTERS = (typeof dndKnowledgeBase !== 'undefined' && dndKnowledgeBase.characters)
-            ? dndKnowledgeBase.characters : [];
+        // Fiches de perso : lues à l'ouverture de la modale (pour refléter les fiches
+        // créées entre-temps). sheetChars = liste utilisée pour l'index du <select>.
+        var sheetChars = [];
+        function getCharacters() {
+            if (typeof window.mdndGetCharacters === 'function') { return window.mdndGetCharacters() || []; }
+            return (typeof dndKnowledgeBase !== 'undefined' && dndKnowledgeBase.characters) ? dndKnowledgeBase.characters : [];
+        }
 
         var CONDITIONS = [
             { name: 'À terre', desc: "Se déplace en rampant ; désavantage aux attaques. Attaques de mêlée subies avec avantage, à distance avec désavantage." },
@@ -1479,13 +1487,15 @@
         // --- Modale d'ajout ---
         function fillSheetSelect() {
             if (!sheetSelect) { return; }
+            sheetChars = getCharacters();
             sheetSelect.innerHTML = '<option value="">— Choisir un personnage —</option>'
-                + CHARACTERS.map(function (c, i) {
+                + sheetChars.map(function (c, i) {
                     return '<option value="' + i + '">' + escapeHtml(c.name) + '</option>';
                 }).join('');
         }
         function openAddModal() {
             if (!addModal) { return; }
+            fillSheetSelect(); // Recharge les fiches à chaque ouverture.
             if (sheetSelect) { sheetSelect.value = ''; }
             [fName, fInit, fHp, fCa].forEach(function (el) { if (el) { el.value = ''; } });
             addModal.classList.add('is-active');
@@ -1499,7 +1509,7 @@
         function confirmAdd() {
             var idx = sheetSelect ? sheetSelect.value : '';
             if (idx !== '') {
-                var ch = CHARACTERS[parseInt(idx, 10)];
+                var ch = sheetChars[parseInt(idx, 10)];
                 if (ch) { addCombatant(fromSheet(ch)); }
             } else {
                 if (!fName.value.trim()) { fName.focus(); return; }
@@ -1528,7 +1538,6 @@
         // Point d'entrée exposé pour un futur ajout direct depuis une fiche.
         window.mdndCombat = { addCombatant: addCombatant, getState: function () { return state; } };
 
-        fillSheetSelect();
         sortByInitiative();
         render();
     })();
