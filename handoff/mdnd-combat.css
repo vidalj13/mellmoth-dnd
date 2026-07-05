@@ -1,0 +1,219 @@
+/* ============================================================
+   MDND — Onglet « Combat » (tracker d'initiative 5e)
+   Front vanilla · préfixe .mdnd-  · dark theme du projet
+   ------------------------------------------------------------
+   Deux zones dans ce fichier :
+   (A) COMPOSANTS RÉUTILISÉS — reconstruction fidèle aux tokens
+       pour la preview. En intégration, SUPPRIME ce bloc : tu as
+       déjà .mdnd-button / .mdnd-input / .mdnd-char-card / .mdnd-chip
+       / .mdnd-badge / .mdnd-line-total / .mdnd-modal /
+       .mdnd-char-toolbar dans app.css.
+   (B) NOUVEAU — spécifique à l'onglet Combat. C'est ce qui
+       s'ajoute à app.css. Aucun token en dur : tout via var().
+   ============================================================ */
+
+:root {
+  /* Fonds */
+  --mdnd-bg:        #111827;   /* hub / champs */
+  --mdnd-surface:   #1f2937;   /* surfaces / cartes / panneaux */
+  --mdnd-border:    #374151;
+  /* Texte */
+  --mdnd-text-strong: #f8fafc;
+  --mdnd-text:        #e2e8f0;
+  --mdnd-text-muted:  #9ca3af;
+  --mdnd-text-faint:  #6b7280;
+  /* Accents */
+  --mdnd-accent:        #3b82f6;
+  --mdnd-accent-hover:  #2563eb;
+  --mdnd-danger:        #dc2626;
+  --mdnd-danger-hover:  #b91c1c;
+  --mdnd-amber:         #fbbf24;
+  /* Rayons */
+  --mdnd-radius-input: 4px;
+  --mdnd-radius-card:  8px;
+  --mdnd-radius-pill:  999px;
+  /* Police */
+  --mdnd-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ============================================================ */
+/* (A) COMPOSANTS RÉUTILISÉS — à retirer en intégration          */
+/* ============================================================ */
+.mdnd-button {
+  font: 500 13px/1 var(--mdnd-font);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: var(--mdnd-radius-input);
+  border: 1px solid var(--mdnd-accent); background: var(--mdnd-accent); color: #fff;
+  cursor: pointer; transition: background .12s, border-color .12s;
+}
+.mdnd-button:hover { background: var(--mdnd-accent-hover); border-color: var(--mdnd-accent-hover); }
+.mdnd-button:focus-visible { outline: 2px solid var(--mdnd-accent); outline-offset: 2px; }
+.mdnd-button--secondary { background: transparent; color: var(--mdnd-text); border-color: var(--mdnd-border); }
+.mdnd-button--secondary:hover { background: var(--mdnd-surface); border-color: var(--mdnd-text-faint); }
+.mdnd-button--danger { background: var(--mdnd-danger); border-color: var(--mdnd-danger); }
+.mdnd-button--danger:hover { background: var(--mdnd-danger-hover); border-color: var(--mdnd-danger-hover); }
+
+.mdnd-input {
+  font: 14px/1.2 var(--mdnd-font);
+  background: var(--mdnd-bg); color: var(--mdnd-text);
+  border: 1px solid var(--mdnd-border); border-radius: var(--mdnd-radius-input);
+  padding: 8px 10px; width: 100%;
+}
+.mdnd-input:focus { outline: none; border-color: var(--mdnd-accent); box-shadow: 0 0 0 1px var(--mdnd-accent); }
+.mdnd-field { display: flex; flex-direction: column; gap: 4px; }
+.mdnd-field > label { font-size: 12px; color: var(--mdnd-text-muted); }
+
+.mdnd-char-card {
+  background: var(--mdnd-surface); border: 1px solid var(--mdnd-border);
+  border-radius: var(--mdnd-radius-card); padding: 14px;
+}
+
+.mdnd-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--mdnd-text);
+  background: var(--mdnd-bg); border: 1px solid var(--mdnd-border);
+  border-radius: var(--mdnd-radius-pill); padding: 3px 4px 3px 10px;
+}
+.mdnd-chip > button {
+  all: unset; cursor: pointer; width: 16px; height: 16px;
+  display: grid; place-items: center; border-radius: 50%;
+  color: var(--mdnd-text-muted); font-size: 11px;
+}
+.mdnd-chip > button:hover { background: var(--mdnd-border); color: var(--mdnd-text-strong); }
+
+.mdnd-badge {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 600; letter-spacing: .02em;
+  padding: 2px 8px; border-radius: var(--mdnd-radius-pill);
+  background: rgba(251,191,36,.15); color: var(--mdnd-amber); border: 1px solid rgba(251,191,36,.3);
+}
+.mdnd-badge--info   { background: rgba(59,130,246,.15); color: var(--mdnd-accent); border-color: rgba(59,130,246,.35); }
+.mdnd-badge--danger { background: rgba(220,38,38,.15);  color: #f87171;           border-color: rgba(220,38,38,.4); }
+
+.mdnd-line-total {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--mdnd-bg); border: 1px solid var(--mdnd-border);
+  border-radius: var(--mdnd-radius-input); padding: 6px 10px;
+}
+.mdnd-line-total__label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--mdnd-text-faint); }
+.mdnd-line-total__value { font-size: 15px; font-weight: 600; color: var(--mdnd-text-strong); font-variant-numeric: tabular-nums; }
+
+.mdnd-modal { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgba(0,0,0,.6); padding: 20px; }
+.mdnd-modal__dialog { width: 100%; max-width: 460px; background: var(--mdnd-surface); border: 1px solid var(--mdnd-border); border-radius: var(--mdnd-radius-card); box-shadow: 0 24px 60px -20px rgba(0,0,0,.8); }
+.mdnd-modal__header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--mdnd-border); }
+.mdnd-modal__title { font-size: 16px; font-weight: 600; color: var(--mdnd-text-strong); margin: 0; }
+.mdnd-modal__close { all: unset; cursor: pointer; color: var(--mdnd-text-muted); font-size: 18px; padding: 4px; }
+.mdnd-modal__close:hover { color: var(--mdnd-text-strong); }
+.mdnd-modal__body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.mdnd-modal__footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 18px; border-top: 1px solid var(--mdnd-border); }
+
+.mdnd-char-toolbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: var(--mdnd-surface); border: 1px solid var(--mdnd-border);
+  border-radius: var(--mdnd-radius-card); padding: 12px 16px; margin-bottom: 16px;
+}
+
+/* ============================================================ */
+/* (B) NOUVEAU — onglet Combat                                   */
+/* ============================================================ */
+.mdnd-combat { font-family: var(--mdnd-font); color: var(--mdnd-text); }
+
+/* — Toolbar : contenu — */
+.mdnd-combat-round { display: flex; align-items: baseline; gap: 8px; }
+.mdnd-combat-round__label { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--mdnd-text-faint); }
+.mdnd-combat-round__num { font-size: 22px; font-weight: 700; color: var(--mdnd-text-strong); font-variant-numeric: tabular-nums; }
+.mdnd-combat-active { display: flex; flex-direction: column; line-height: 1.3; padding-left: 16px; border-left: 1px solid var(--mdnd-border); }
+.mdnd-combat-active__label { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--mdnd-text-faint); }
+.mdnd-combat-active__name { font-size: 15px; font-weight: 600; color: var(--mdnd-text-strong); }
+.mdnd-combat-toolbar-actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+
+/* — Liste d'initiative (desktop = lignes denses) — */
+.mdnd-combat-list { display: flex; flex-direction: column; gap: 8px; }
+.mdnd-init-row {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--mdnd-surface); border: 1px solid var(--mdnd-border);
+  border-left: 3px solid transparent;
+  border-radius: var(--mdnd-radius-card); padding: 10px 14px;
+}
+.mdnd-init-row.is-active { border-left-color: var(--mdnd-accent); background: linear-gradient(90deg, rgba(59,130,246,.10), var(--mdnd-surface) 60%); }
+.mdnd-init-row.is-ko { border-left-color: var(--mdnd-danger); opacity: .72; }
+.mdnd-init-row.is-ko .mdnd-init-name__text { text-decoration: line-through; color: var(--mdnd-text-muted); }
+
+/* Initiative (éditable) */
+.mdnd-init-num { flex: none; width: 48px; }
+.mdnd-init-num .mdnd-input { text-align: center; font-weight: 700; font-size: 16px; padding: 6px 4px; color: var(--mdnd-text-strong); }
+
+/* Bloc nom + type + conditions */
+.mdnd-init-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.mdnd-init-name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mdnd-init-name__text { font-size: 15px; font-weight: 600; color: var(--mdnd-text-strong); }
+.mdnd-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.mdnd-chip-add { all: unset; cursor: pointer; font-size: 12px; color: var(--mdnd-text-muted); border: 1px dashed var(--mdnd-border); border-radius: var(--mdnd-radius-pill); padding: 3px 10px; }
+.mdnd-chip-add:hover { color: var(--mdnd-text); border-color: var(--mdnd-text-faint); }
+
+/* PV : total encadré + jauge + dégâts/soin */
+.mdnd-hp { flex: none; width: 250px; display: flex; flex-direction: column; gap: 6px; }
+.mdnd-hp-bar { height: 6px; border-radius: var(--mdnd-radius-pill); background: var(--mdnd-bg); border: 1px solid var(--mdnd-border); overflow: hidden; }
+.mdnd-hp-bar > i { display: block; height: 100%; background: var(--mdnd-accent); transition: width .3s, background .3s; }
+.mdnd-hp-bar.is-mid > i { background: var(--mdnd-amber); }
+.mdnd-hp-bar.is-low > i { background: var(--mdnd-danger); }
+.mdnd-hp-actions { display: flex; gap: 6px; align-items: center; }
+.mdnd-hp-actions .mdnd-button { padding: 6px 10px; font-size: 15px; line-height: 1; }
+.mdnd-hp-input { width: 52px; text-align: center; padding: 6px 4px; }
+
+/* CA */
+.mdnd-stat { flex: none; text-align: center; }
+.mdnd-stat__label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--mdnd-text-faint); }
+.mdnd-stat__value { font-size: 18px; font-weight: 700; color: var(--mdnd-text-strong); }
+
+/* Actions ligne */
+.mdnd-init-actions { flex: none; display: flex; gap: 6px; }
+.mdnd-init-actions .mdnd-button { padding: 7px 9px; }
+
+/* — État vide — */
+.mdnd-combat-empty { text-align: center; padding: 48px 24px; border: 1px dashed var(--mdnd-border); border-radius: var(--mdnd-radius-card); color: var(--mdnd-text-muted); }
+.mdnd-combat-empty__title { font-size: 16px; font-weight: 600; color: var(--mdnd-text); margin: 0 0 6px; }
+.mdnd-combat-empty__sub { margin: 0 0 18px; font-size: 13px; }
+
+/* ============================================================ */
+/* ≤900px — bascule en cartes (.mdnd-kb-cards)                   */
+/* La même règle s'applique via media-query OU en ajoutant la    */
+/* classe .mdnd-kb-cards sur .mdnd-combat-list (toggle JS).      */
+/* ============================================================ */
+/* Règles de bascule cartes, factorisées : appliquées par le
+   media-query ci-dessous ET par la classe .mdnd-kb-cards (si tu
+   préfères piloter la bascule en JS plutôt qu'au viewport). */
+.mdnd-combat-list.mdnd-kb-cards .mdnd-init-row {
+  flex-wrap: wrap; align-items: flex-start; row-gap: 12px;
+}
+.mdnd-combat-list.mdnd-kb-cards .mdnd-init-main { flex: 1 1 60%; order: 1; }
+.mdnd-combat-list.mdnd-kb-cards .mdnd-init-num  { order: 0; }
+.mdnd-combat-list.mdnd-kb-cards .mdnd-init-actions { order: 2; margin-left: auto; }
+.mdnd-combat-list.mdnd-kb-cards .mdnd-hp   { order: 3; flex: 1 1 100%; width: auto; }
+.mdnd-combat-list.mdnd-kb-cards .mdnd-stat { order: 4; flex: none; text-align: left; }
+.mdnd-combat-list.mdnd-kb-cards .mdnd-hp-actions { justify-content: flex-start; }
+
+@media (max-width: 900px) {
+  .mdnd-init-row { flex-wrap: wrap; align-items: flex-start; row-gap: 12px; }
+  .mdnd-init-main { flex: 1 1 60%; order: 1; }
+  .mdnd-init-num  { order: 0; }
+  .mdnd-init-actions { order: 2; margin-left: auto; }
+  .mdnd-hp   { order: 3; flex: 1 1 100%; width: auto; }
+  .mdnd-stat { order: 4; flex: none; text-align: left; }
+  .mdnd-hp-actions { justify-content: flex-start; }
+}
+
+/* ============================================================ */
+/* ≤640px — mono-colonne, pas de scroll horizontal               */
+/* ============================================================ */
+@media (max-width: 640px) {
+  .mdnd-char-toolbar { gap: 10px; }
+  .mdnd-combat-toolbar-actions { width: 100%; margin-left: 0; }
+  .mdnd-combat-toolbar-actions .mdnd-button { flex: 1 1 auto; justify-content: center; }
+  .mdnd-init-actions { width: 100%; order: 5; }
+  .mdnd-init-actions .mdnd-button { flex: 1; justify-content: center; }
+  .mdnd-hp-actions { flex-wrap: wrap; }
+  .mdnd-hp-actions .mdnd-button { flex: 1; justify-content: center; }
+  .mdnd-hp-input { flex: 1; width: auto; }
+}

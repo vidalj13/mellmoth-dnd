@@ -258,7 +258,8 @@
 }
 
 /* Titre de la modale de formulaire (hors .mdnd-modal-body) */
-#mdnd-form-title {
+#mdnd-form-title,
+#mdnd-combat-title {
     color: #f8fafc;
     font-size: 1.6rem;
     margin: 0 2rem 1rem 0;
@@ -840,8 +841,389 @@ textarea.mdnd-input {
     margin-bottom: 0;
 }
 
+/* =========================================================================
+ *  Combat — tracker d'initiative 5e (maquette intégrée)
+ *  Réutilise .mdnd-button(-secondary/-danger), .mdnd-input, .mdnd-chip(-del),
+ *  .mdnd-badge, .mdnd-char-toolbar. Les classes ci-dessous sont spécifiques
+ *  au Combat (renommées pour ne pas collisionner avec l'existant).
+ * ===================================================================== */
+.mdnd-combat {
+    color: #e2e8f0;
+}
+
+/* Variantes de badge : le .mdnd-badge de base reste ambre (Monstre). */
+.mdnd-badge-info {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+.mdnd-badge-danger {
+    color: #f87171;
+    background: rgba(220, 38, 38, 0.15);
+    border-color: rgba(220, 38, 38, 0.4);
+}
+
+/* Barre d'encombre : le conteneur réutilise .mdnd-char-toolbar. */
+.mdnd-combat-toolbar {
+    flex-wrap: wrap;
+}
+
+.mdnd-combat-round {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.mdnd-combat-round__label,
+.mdnd-combat-active__label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7280;
+}
+
+.mdnd-combat-round__num {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #f8fafc;
+    font-variant-numeric: tabular-nums;
+}
+
+.mdnd-combat-active {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+    padding-left: 1rem;
+    border-left: 1px solid #374151;
+}
+
+.mdnd-combat-active__name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.mdnd-combat-toolbar-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+/* Liste d'initiative (desktop = lignes denses). */
+.mdnd-combat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mdnd-init-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-left: 3px solid transparent;
+    border-radius: 8px;
+    padding: 0.65rem 0.9rem;
+}
+
+.mdnd-init-row.is-active {
+    border-left-color: #3b82f6;
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.10), #1f2937 60%);
+}
+
+.mdnd-init-row.is-ko {
+    border-left-color: #dc2626;
+    opacity: 0.72;
+}
+
+.mdnd-init-row.is-ko .mdnd-init-name__text {
+    text-decoration: line-through;
+    color: #9ca3af;
+}
+
+.mdnd-init-num {
+    flex: none;
+    width: 48px;
+}
+
+.mdnd-init-num .mdnd-input {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 0.35rem 0.25rem;
+    color: #f8fafc;
+}
+
+.mdnd-init-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.mdnd-init-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.mdnd-init-name__text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.mdnd-chip-list {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+/* Menu déroulant des états (ancré sous le bouton « + État »). */
+.mdnd-cond-menu {
+    top: 100%;
+    left: 0;
+    right: auto;
+    min-width: 300px;
+    max-width: 360px;
+}
+
+.mdnd-cond-item {
+    line-height: 1.35;
+}
+
+.mdnd-cond-item__name {
+    display: block;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.mdnd-cond-item__desc {
+    display: block;
+    font-size: 0.78rem;
+    color: #9ca3af;
+    white-space: normal;
+}
+
+.mdnd-chip-add {
+    background: none;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8rem;
+    color: #9ca3af;
+    border: 1px dashed #374151;
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+}
+
+.mdnd-chip-add:hover {
+    color: #e2e8f0;
+    border-color: #6b7280;
+}
+
+/* PV : total encadré + jauge + dégâts/soin. */
+.mdnd-hp {
+    flex: none;
+    width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.mdnd-hp-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 4px;
+    padding: 0.35rem 0.6rem;
+}
+
+.mdnd-hp-total__label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+}
+
+.mdnd-hp-total__value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #f8fafc;
+    font-variant-numeric: tabular-nums;
+}
+
+.mdnd-hp-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: #111827;
+    border: 1px solid #374151;
+    overflow: hidden;
+}
+
+.mdnd-hp-bar > i {
+    display: block;
+    height: 100%;
+    background: #3b82f6;
+    transition: width 0.3s, background 0.3s;
+}
+
+.mdnd-hp-bar.is-mid > i {
+    background: #fbbf24;
+}
+
+.mdnd-hp-bar.is-low > i {
+    background: #dc2626;
+}
+
+.mdnd-hp-actions {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.mdnd-hp-actions .mdnd-button {
+    padding: 0.35rem 0.6rem;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.mdnd-hp-input {
+    width: 52px;
+    text-align: center;
+    padding: 0.35rem 0.25rem;
+}
+
+/* CA. */
+.mdnd-stat {
+    flex: none;
+    text-align: center;
+}
+
+.mdnd-stat__label {
+    display: block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7280;
+}
+
+.mdnd-stat__value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+/* Actions de ligne. */
+.mdnd-init-actions {
+    flex: none;
+    display: flex;
+    gap: 0.4rem;
+}
+
+.mdnd-init-actions .mdnd-button {
+    padding: 0.4rem 0.55rem;
+}
+
+/* État vide. */
+.mdnd-combat-empty {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    border: 1px dashed #374151;
+    border-radius: 8px;
+    color: #9ca3af;
+}
+
+.mdnd-combat-empty__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0 0 0.4rem;
+}
+
+.mdnd-combat-empty__sub {
+    margin: 0 0 1.1rem;
+    font-size: 0.85rem;
+}
+
+/* ≤900px — bascule des lignes denses en cartes empilées. */
+@media (max-width: 900px) {
+    .mdnd-init-row {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        row-gap: 0.75rem;
+    }
+
+    .mdnd-init-num {
+        order: 0;
+    }
+
+    .mdnd-init-main {
+        flex: 1 1 60%;
+        order: 1;
+    }
+
+    .mdnd-init-actions {
+        order: 2;
+        margin-left: auto;
+    }
+
+    .mdnd-hp {
+        order: 3;
+        flex: 1 1 100%;
+        width: auto;
+    }
+
+    .mdnd-stat {
+        order: 4;
+        flex: none;
+        text-align: left;
+    }
+
+    .mdnd-hp-actions {
+        justify-content: flex-start;
+    }
+}
+
 /* Responsive */
 @media (max-width: 640px) {
+    .mdnd-combat-toolbar-actions {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .mdnd-combat-toolbar-actions .mdnd-button {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
+    .mdnd-init-actions {
+        width: 100%;
+        order: 5;
+    }
+
+    .mdnd-init-actions .mdnd-button {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .mdnd-hp-actions {
+        flex-wrap: wrap;
+    }
+
+    .mdnd-hp-input {
+        flex: 1;
+        width: auto;
+    }
+
     .mellmoth-dnd-hub {
         padding: 1rem;
         margin: 1rem auto;

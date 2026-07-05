@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MDND · Handoff — Onglet Combat</title>
+<link rel="stylesheet" href="mdnd-combat.css">
+<style>
+  body { margin: 0; background: #0d131f; color: #e2e8f0; font-family: system-ui, sans-serif; line-height: 1.55; }
+  .hx-wrap { max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
+  .hx-h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; color: #f8fafc; }
+  .hx-sub { color: #9ca3af; margin: 0 0 8px; }
+  .hx-sub code, .hx-note code, .hx-tokens code, ol code, ul code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #93c5fd; }
+  .hx-sec { margin: 52px 0 0; }
+  .hx-sec > h2 { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: #3b82f6; border-bottom: 1px solid #374151; padding-bottom: 8px; margin: 0 0 20px; }
+  .hx-note { font-size: 13px; color: #9ca3af; background: #111827; border-left: 3px solid #3b82f6; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 0 0 20px; }
+  .hx-note b { color: #e2e8f0; }
+  .hx-frames { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+  .hx-frame { border: 1px solid #374151; border-radius: 10px; overflow: hidden; background: #111827; }
+  .hx-frame-bar { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #9ca3af; padding: 8px 12px; border-bottom: 1px solid #374151; }
+  .hx-frame iframe { display: block; border: 0; height: 520px; background: #111827; }
+  .hx-tokens { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .hx-tokens th { text-align: left; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #6b7280; padding: 6px 12px; border-bottom: 1px solid #374151; }
+  .hx-tokens td { padding: 7px 12px; border-bottom: 1px solid #1f2937; vertical-align: middle; }
+  .hx-swatch { display: inline-block; width: 20px; height: 20px; border-radius: 5px; border: 1px solid rgba(255,255,255,.15); vertical-align: middle; margin-right: 4px; }
+  .hx-states { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+  .hx-state h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #9ca3af; margin: 0 0 10px; }
+  .hx-state-box { border: 1px solid #374151; border-radius: 10px; padding: 16px; background: #111827; }
+  .hx-reuse { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hx-reuse span { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #93c5fd; background: #111827; border: 1px solid #374151; border-radius: 999px; padding: 4px 12px; }
+  pre { background: #0b1220; border: 1px solid #374151; border-radius: 10px; padding: 16px; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; line-height: 1.6; color: #cbd5e1; }
+  pre .k { color: #c084fc; } pre .s { color: #86efac; } pre .c { color: #64748b; font-style: italic; }
+  ol.hx-fields, ul.hx-plain { font-size: 14px; color: #cbd5e1; padding-left: 20px; }
+  ol.hx-fields li, ul.hx-plain li { padding: 3px 0; }
+  .hx-modal-static { position: static; background: none; padding: 0; display: block; }
+  .hx-modal-static .mdnd-modal__dialog { box-shadow: none; }
+</style>
+</head>
+<body>
+<div class="hx-wrap">
+
+  <h1 class="hx-h1">Onglet « Combat » — dossier d'intégration</h1>
+  <p class="hx-sub">Tracker d'initiative D&amp;D 5e · front vanilla, rendu par génération JS échappée · classes <code>.mdnd-*</code>, tokens du projet réutilisés tels quels. Fichiers livrés : <code>mdnd-combat.css</code> (bloc B à coller dans app.css) + <code>tab.html</code> (markup de référence).</p>
+
+  <!-- COMPOSANTS RECYCLÉS -->
+  <section class="hx-sec">
+    <h2>Composants existants recyclés</h2>
+    <p class="hx-note">Aucun nouveau style de base : la maquette réutilise tes composants. Le CSS livré les reconstruit uniquement pour la preview — <b>supprime le bloc (A)</b> à l'intégration, garde le bloc (B) « nouveau ».</p>
+    <div class="hx-reuse">
+      <span>.mdnd-button</span><span>.mdnd-button--secondary</span><span>.mdnd-button--danger</span>
+      <span>.mdnd-input</span><span>.mdnd-field</span><span>.mdnd-char-card</span>
+      <span>.mdnd-chip</span><span>.mdnd-badge</span><span>.mdnd-line-total</span>
+      <span>.mdnd-modal</span><span>.mdnd-char-toolbar</span><span>.mdnd-kb-cards</span>
+    </div>
+  </section>
+
+  <!-- 1. BREAKPOINTS -->
+  <section class="hx-sec">
+    <h2>1 · Preview aux trois breakpoints</h2>
+    <p class="hx-note"><b>Desktop</b> = liste dense en lignes. <b>≤900px</b> = bascule cartes (via media-query, ou classe <code>.mdnd-kb-cards</code> togglée en JS). <b>≤640px</b> = mono-colonne, contrôles pleine largeur. Aucun scroll horizontal — un seul markup.</p>
+    <div class="hx-frames">
+      <div class="hx-frame">
+        <div class="hx-frame-bar"><span>Desktop · lignes</span><span>1100px</span></div>
+        <iframe src="tab.html" style="width:1100px" title="Desktop"></iframe>
+      </div>
+    </div>
+    <div class="hx-frames" style="margin-top:20px">
+      <div class="hx-frame">
+        <div class="hx-frame-bar"><span>Tablette · cartes</span><span>≤900px</span></div>
+        <iframe src="tab.html" style="width:840px" title="Cartes"></iframe>
+      </div>
+      <div class="hx-frame">
+        <div class="hx-frame-bar"><span>Mobile · mono-colonne</span><span>≤640px</span></div>
+        <iframe src="tab.html" style="width:370px" title="Mono-colonne"></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. TOKENS -->
+  <section class="hx-sec">
+    <h2>2 · Tokens utilisés (les tiens, inchangés)</h2>
+    <table class="hx-tokens">
+      <thead><tr><th>Rôle</th><th>Valeur</th></tr></thead>
+      <tbody>
+        <tr><td>Fond hub / champs</td><td><span class="hx-swatch" style="background:#111827"></span>#111827</td></tr>
+        <tr><td>Surfaces / cartes / panneaux</td><td><span class="hx-swatch" style="background:#1f2937"></span>#1f2937</td></tr>
+        <tr><td>Bordures</td><td><span class="hx-swatch" style="background:#374151"></span>#374151</td></tr>
+        <tr><td>Texte fort / courant / atténué / faible</td><td><span class="hx-swatch" style="background:#f8fafc"></span><span class="hx-swatch" style="background:#e2e8f0"></span><span class="hx-swatch" style="background:#9ca3af"></span><span class="hx-swatch" style="background:#6b7280"></span></td></tr>
+        <tr><td>Accent (hover)</td><td><span class="hx-swatch" style="background:#3b82f6"></span>#3b82f6 → #2563eb</td></tr>
+        <tr><td>Danger (hover)</td><td><span class="hx-swatch" style="background:#dc2626"></span>#dc2626 → #b91c1c</td></tr>
+        <tr><td>Ambre / badge</td><td><span class="hx-swatch" style="background:#fbbf24"></span>#fbbf24</td></tr>
+        <tr><td>Rayons</td><td>4px inputs/boutons · 8px cartes/panneaux · 999px pastilles</td></tr>
+      </tbody>
+    </table>
+    <p class="hx-note" style="margin-top:16px">Jauge PV : <b>accent</b> &gt;50 %, <b>ambre</b> 25–50 %, <b>danger</b> &lt;25 % (modifiers <code>.is-mid</code> / <code>.is-low</code> sur <code>.mdnd-hp-bar</code>). Aucun nouveau token — que du réemploi.</p>
+  </section>
+
+  <!-- 3. ÉTATS -->
+  <section class="hx-sec">
+    <h2>3 · États</h2>
+    <div class="hx-states">
+      <div class="hx-state">
+        <h3>Combat non démarré (vide)</h3>
+        <div class="hx-state-box">
+          <div class="mdnd-combat-empty">
+            <p class="mdnd-combat-empty__title">Aucun combat en cours</p>
+            <p class="mdnd-combat-empty__sub">Ajoute des combattants puis lance l'initiative.</p>
+            <button class="mdnd-button" type="button">+ Ajouter un combattant</button>
+          </div>
+        </div>
+      </div>
+      <div class="hx-state">
+        <h3>En cours · ligne au tour actif</h3>
+        <div class="hx-state-box">
+          <div class="mdnd-init-row is-active">
+            <div class="mdnd-init-num"><input class="mdnd-input" type="number" value="19"></div>
+            <div class="mdnd-init-main"><div class="mdnd-init-name"><span class="mdnd-init-name__text">Théa</span><span class="mdnd-badge mdnd-badge--info">Héros</span></div></div>
+            <div class="mdnd-stat"><span class="mdnd-stat__label">CA</span><span class="mdnd-stat__value">18</span></div>
+          </div>
+          <p style="font-size:12px;color:#9ca3af;margin:10px 0 0">Surbrillance : <code>.is-active</code> (bord gauche accent + dégradé).</p>
+        </div>
+      </div>
+      <div class="hx-state">
+        <h3>Combattant à 0 PV (K.O.)</h3>
+        <div class="hx-state-box">
+          <div class="mdnd-init-row is-ko">
+            <div class="mdnd-init-num"><input class="mdnd-input" type="number" value="6"></div>
+            <div class="mdnd-init-main"><div class="mdnd-init-name"><span class="mdnd-init-name__text">Gobelin</span><span class="mdnd-badge">Monstre</span><span class="mdnd-badge mdnd-badge--danger">K.O.</span></div></div>
+            <div class="mdnd-stat"><span class="mdnd-stat__label">CA</span><span class="mdnd-stat__value">15</span></div>
+          </div>
+          <p style="font-size:12px;color:#9ca3af;margin:10px 0 0">État : <code>.is-ko</code> (bord danger, ligne barrée, badge <code>.mdnd-badge--danger</code>).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. MODALE -->
+  <section class="hx-sec">
+    <h2>4 · Ajout de combattant (modale partagée .mdnd-modal)</h2>
+    <p class="hx-note">Deux entrées : <b>depuis une fiche existante</b> (select) ou <b>PNJ / monstre rapide</b> (nom, init, PV, CA). Réutilise la structure <code>.mdnd-modal</code> ; champs en <code>.mdnd-field</code> + <code>.mdnd-input</code> ; pied avec <code>.mdnd-button</code>.</p>
+    <div class="hx-states" style="grid-template-columns:minmax(0,460px)">
+      <div class="mdnd-modal hx-modal-static" aria-modal="true" role="dialog">
+        <div class="mdnd-modal__dialog">
+          <div class="mdnd-modal__header">
+            <h3 class="mdnd-modal__title">Ajouter un combattant</h3>
+            <button class="mdnd-modal__close" type="button" aria-label="Fermer">✕</button>
+          </div>
+          <div class="mdnd-modal__body">
+            <div class="mdnd-field">
+              <label for="add-sheet">Depuis une fiche existante</label>
+              <select class="mdnd-input" id="add-sheet">
+                <option>— Choisir un personnage —</option>
+                <option>Théa Vaillepierre</option>
+                <option>Bram Piedléger</option>
+              </select>
+            </div>
+            <div style="text-align:center;font-size:12px;color:#6b7280">— ou saisie rapide PNJ / monstre —</div>
+            <div class="mdnd-field">
+              <label for="add-name">Nom</label>
+              <input class="mdnd-input" id="add-name" placeholder="Gobelin">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div class="mdnd-field"><label for="add-init">Init</label><input class="mdnd-input" id="add-init" type="number" placeholder="12"></div>
+              <div class="mdnd-field"><label for="add-hp">PV</label><input class="mdnd-input" id="add-hp" type="number" placeholder="7"></div>
+              <div class="mdnd-field"><label for="add-ca">CA</label><input class="mdnd-input" id="add-ca" type="number" placeholder="15"></div>
+            </div>
+          </div>
+          <div class="mdnd-modal__footer">
+            <button class="mdnd-button mdnd-button--secondary" type="button">Annuler</button>
+            <button class="mdnd-button" type="button">Ajouter</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. MARKUP JS -->
+  <section class="hx-sec">
+    <h2>5 · Génération d'une ligne (JS échappé)</h2>
+    <p class="hx-note">Une <code>.mdnd-init-row</code> par combattant. Valeurs dynamiques via <code>escapeHtml()</code>, notes via <code>formatDescription()</code>. Tri init décroissant côté données avant rendu.</p>
+    <pre><span class="c">// c = { id, nom, type:'pc'|'monster', init, pv, pvMax, ca, etats:[], actif, ko }</span>
+<span class="k">function</span> renderRow(c) {
+  <span class="k">const</span> pct  = Math.max(0, Math.min(100, c.pv / c.pvMax * 100));
+  <span class="k">const</span> bar  = pct &lt;= 25 ? <span class="s">'is-low'</span> : pct &lt;= 50 ? <span class="s">'is-mid'</span> : <span class="s">''</span>;
+  <span class="k">const</span> badge= c.type === <span class="s">'pc'</span> ? <span class="s">'mdnd-badge--info'</span> : <span class="s">'mdnd-badge'</span>;
+  <span class="k">const</span> lbl  = c.type === <span class="s">'pc'</span> ? <span class="s">'Héros'</span> : <span class="s">'Monstre'</span>;
+  <span class="k">const</span> chips= c.etats.map(e =&gt;
+    <span class="s">`&lt;span class="mdnd-chip"&gt;${escapeHtml(e)} &lt;button type="button" aria-label="Retirer"&gt;✕&lt;/button&gt;&lt;/span&gt;`</span>).join(<span class="s">''</span>);
+
+  <span class="k">return</span> <span class="s">`
+  &lt;div class="mdnd-init-row ${c.actif ? 'is-active' : ''} ${c.ko ? 'is-ko' : ''}" data-id="${c.id}"&gt;
+    &lt;div class="mdnd-init-num"&gt;&lt;input class="mdnd-input" type="number" value="${c.init}"&gt;&lt;/div&gt;
+    &lt;div class="mdnd-init-main"&gt;
+      &lt;div class="mdnd-init-name"&gt;
+        &lt;span class="mdnd-init-name__text"&gt;${escapeHtml(c.nom)}&lt;/span&gt;
+        &lt;span class="mdnd-badge ${badge}"&gt;${lbl}&lt;/span&gt;
+        ${c.ko ? '&lt;span class="mdnd-badge mdnd-badge--danger"&gt;K.O.&lt;/span&gt;' : ''}
+      &lt;/div&gt;
+      &lt;div class="mdnd-chip-list"&gt;${chips}&lt;button class="mdnd-chip-add" type="button"&gt;+ État&lt;/button&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="mdnd-hp"&gt;
+      &lt;div class="mdnd-line-total"&gt;&lt;span class="mdnd-line-total__label"&gt;PV&lt;/span&gt;&lt;span class="mdnd-line-total__value"&gt;${c.pv} / ${c.pvMax}&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="mdnd-hp-bar ${bar}"&gt;&lt;i style="width:${pct}%"&gt;&lt;/i&gt;&lt;/div&gt;
+      &lt;div class="mdnd-hp-actions"&gt;
+        &lt;button class="mdnd-button mdnd-button--danger" type="button"&gt;−&lt;/button&gt;
+        &lt;input class="mdnd-input mdnd-hp-input" type="number" placeholder="0"&gt;
+        &lt;button class="mdnd-button mdnd-button--secondary" type="button"&gt;+&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="mdnd-stat"&gt;&lt;span class="mdnd-stat__label"&gt;CA&lt;/span&gt;&lt;span class="mdnd-stat__value"&gt;${c.ca}&lt;/span&gt;&lt;/div&gt;
+    &lt;div class="mdnd-init-actions"&gt;
+      &lt;button class="mdnd-button mdnd-button--secondary" type="button" title="Détails"&gt;⋯&lt;/button&gt;
+      &lt;button class="mdnd-button mdnd-button--secondary" type="button" title="Retirer"&gt;✕&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;`</span>;
+}</pre>
+  </section>
+
+  <!-- 6. PÉRIMÈTRE -->
+  <section class="hx-sec">
+    <h2>6 · Périmètre</h2>
+    <ul class="hx-plain">
+      <li>Pas de React ni build — markup + CSS vanilla, rendu par <code>innerHTML</code> échappé.</li>
+      <li>Pas d'asset binaire — icônes = glyphes texte (‹ › − + ✕ ⋯), remplaçables par tes SVG.</li>
+      <li>Pas de nouveau préfixe — tout sous <code>.mdnd-*</code> ; bloc (A) du CSS à supprimer à l'intégration.</li>
+      <li>Détail d'un combattant : réutilise la modale partagée, mêmes champs que la ligne (nom, init, PV, CA, états).</li>
+    </ul>
+  </section>
+
+</div>
+</body>
+</html>

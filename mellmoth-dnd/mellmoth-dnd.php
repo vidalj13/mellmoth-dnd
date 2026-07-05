@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Mellmoth D&D Hub
  * Description: Espace de jeu D&D reserve aux membres autorises.
- * Version:     1.1.5
+ * Version:     1.2.0
  * Author:      Mellmoth Forge
  * Requires PHP: 8.0
  * Text Domain: mellmoth-dnd
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /* -------------------------------------------------------------------------
  *  Constantes / reglages  (les seuls "boutons" que tu touches)
  * ---------------------------------------------------------------------- */
-const VERSION       = '1.1.5';
+const VERSION       = '1.2.0';
 const CAPABILITY    = 'access_dnd_hub'; // Droit requis pour voir le hub.
 const ROUTE_SLUG    = 'table-de-jeu';   // URL publique : /table-de-jeu
 const MENU_LABEL    = 'Table de jeu';   // Libelle affiche dans le menu.

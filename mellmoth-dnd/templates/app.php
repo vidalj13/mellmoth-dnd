@@ -24,6 +24,10 @@ get_header();
             Équipement
         </button>
         <button type="button" class="mdnd-tab" role="tab"
+                data-panel="combat" aria-controls="panel-combat" aria-selected="false">
+            Combat
+        </button>
+        <button type="button" class="mdnd-tab" role="tab"
                 data-panel="dice-roller" aria-controls="panel-dice-roller" aria-selected="false">
             Lanceur de dés
         </button>
@@ -99,6 +103,36 @@ get_header();
         </div>
     </section>
 
+    <section class="mdnd-panel" id="panel-combat" role="tabpanel" hidden>
+        <!-- Tracker de combat (éphémère, persisté navigateur). Les lignes sont
+             générées par JS (escapeHtml) dans #combat-list. -->
+        <div class="mdnd-combat" id="combat-view">
+            <div class="mdnd-char-toolbar mdnd-combat-toolbar" id="combat-toolbar" hidden>
+                <div class="mdnd-combat-round">
+                    <span class="mdnd-combat-round__label">Round</span>
+                    <span class="mdnd-combat-round__num" id="combat-round">1</span>
+                </div>
+                <div class="mdnd-combat-active" id="combat-active" hidden>
+                    <span class="mdnd-combat-active__label">Au tour de</span>
+                    <span class="mdnd-combat-active__name" id="combat-active-name"></span>
+                </div>
+                <div class="mdnd-combat-toolbar-actions">
+                    <button type="button" class="mdnd-button" id="combat-add-btn">+ Combattant</button>
+                    <button type="button" class="mdnd-button" id="combat-next-btn">Tour suivant ›</button>
+                    <button type="button" class="mdnd-button mdnd-button-danger" id="combat-reset-btn">Nouveau combat</button>
+                </div>
+            </div>
+
+            <div class="mdnd-combat-list" id="combat-list"></div>
+
+            <div class="mdnd-combat-empty" id="combat-empty">
+                <p class="mdnd-combat-empty__title">Aucun combat en cours</p>
+                <p class="mdnd-combat-empty__sub">Ajoutez des combattants puis lancez l'initiative.</p>
+                <button type="button" class="mdnd-button" id="combat-empty-add">+ Ajouter un combattant</button>
+            </div>
+        </div>
+    </section>
+
     <section class="mdnd-panel" id="panel-dice-roller" role="tabpanel" hidden>
         <div class="mdnd-dice-roller">
             <div class="mdnd-dice-controls">
@@ -162,6 +196,41 @@ get_header();
                 <button type="submit" class="mdnd-button" id="mdnd-form-submit">Enregistrer</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Popup d'ajout d'un combattant (tracker de combat) -->
+<div id="mdnd-combat-modal" class="mdnd-modal">
+    <div class="mdnd-modal-content">
+        <button class="mdnd-modal-close" data-close="combat">&times;</button>
+        <h2 id="mdnd-combat-title">Ajouter un combattant</h2>
+        <div class="mdnd-field">
+            <label for="combat-add-sheet">Depuis une fiche existante</label>
+            <select class="mdnd-input" id="combat-add-sheet"></select>
+        </div>
+        <p class="mdnd-modal-subtitle" style="text-align:center;">— ou saisie rapide PNJ / monstre —</p>
+        <div class="mdnd-field">
+            <label for="combat-add-name">Nom</label>
+            <input class="mdnd-input" id="combat-add-name" placeholder="Gobelin">
+        </div>
+        <div class="mdnd-grid">
+            <div class="mdnd-field">
+                <label for="combat-add-init">Initiative</label>
+                <input class="mdnd-input" id="combat-add-init" type="number" placeholder="12">
+            </div>
+            <div class="mdnd-field">
+                <label for="combat-add-hp">PV</label>
+                <input class="mdnd-input" id="combat-add-hp" type="number" placeholder="7">
+            </div>
+            <div class="mdnd-field">
+                <label for="combat-add-ca">CA</label>
+                <input class="mdnd-input" id="combat-add-ca" type="number" placeholder="15">
+            </div>
+        </div>
+        <div class="mdnd-form-actions">
+            <button type="button" class="mdnd-button mdnd-button-secondary" data-close="combat">Annuler</button>
+            <button type="button" class="mdnd-button" id="combat-add-confirm">Ajouter</button>
+        </div>
     </div>
 </div>
 

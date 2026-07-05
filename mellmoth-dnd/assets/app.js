@@ -33,6 +33,7 @@
         characters: root.querySelector('#panel-characters'),
         spells: root.querySelector('#panel-spells'),
         equipment: root.querySelector('#panel-equipment'),
+        combat: root.querySelector('#panel-combat'),
         'dice-roller': root.querySelector('#panel-dice-roller')
     };
 
@@ -1117,6 +1118,366 @@
             }
         });
     }
+
+    // --- TRACKER DE COMBAT (éphémère, persisté dans le navigateur) ---
+    // Logique round/tour + PV + conditions + persistance localStorage, rendu au
+    // markup de la maquette (.mdnd-init-row). window.mdndCombat.addCombatant() reste
+    // exposé pour un futur ajout direct depuis une fiche de personnage.
+    (function combatTracker() {
+        var listEl = document.getElementById('combat-list');
+        if (!listEl) { return; }
+
+        var STORAGE_KEY = 'mdnd_combat';
+        var toolbarEl = document.getElementById('combat-toolbar');
+        var roundNumEl = document.getElementById('combat-round');
+        var activeEl = document.getElementById('combat-active');
+        var activeNameEl = document.getElementById('combat-active-name');
+        var emptyEl = document.getElementById('combat-empty');
+        var nextBtn = document.getElementById('combat-next-btn');
+        var resetBtn = document.getElementById('combat-reset-btn');
+        var addBtns = [document.getElementById('combat-add-btn'), document.getElementById('combat-empty-add')];
+
+        // Modale d'ajout (réutilise la structure .mdnd-modal partagée).
+        var addModal = document.getElementById('mdnd-combat-modal');
+        var sheetSelect = document.getElementById('combat-add-sheet');
+        var fName = document.getElementById('combat-add-name');
+        var fInit = document.getElementById('combat-add-init');
+        var fHp = document.getElementById('combat-add-hp');
+        var fCa = document.getElementById('combat-add-ca');
+        var addConfirmBtn = document.getElementById('combat-add-confirm');
+
+        // Fiches de perso disponibles (localisées côté serveur).
+        var CHARACTERS = (typeof dndKnowledgeBase !== 'undefined' && dndKnowledgeBase.characters)
+            ? dndKnowledgeBase.characters : [];
+
+        var CONDITIONS = [
+            { name: 'À terre', desc: "Se déplace en rampant ; désavantage aux attaques. Attaques de mêlée subies avec avantage, à distance avec désavantage." },
+            { name: 'Agrippé', desc: "Vitesse réduite à 0, aucun bonus de vitesse." },
+            { name: 'Assourdi', desc: "N'entend plus ; rate les jets nécessitant l'ouïe." },
+            { name: 'Aveuglé', desc: "Ne voit plus ; désavantage aux attaques, les attaquants ont l'avantage." },
+            { name: 'Charmé', desc: "Ne peut cibler le charmeur ; celui-ci a l'avantage aux interactions sociales." },
+            { name: 'Concentration', desc: "Maintien d'un sort : jet de Constitution (DD 10 ou ½ des dégâts subis) à chaque dégât, sinon le sort cesse." },
+            { name: 'Effrayé', desc: "Désavantage tant que la source est visible ; ne peut s'en approcher volontairement." },
+            { name: 'Empoisonné', desc: "Désavantage aux jets d'attaque et aux tests de caractéristique." },
+            { name: 'Entravé', desc: "Vitesse 0 ; désavantage aux attaques et à la Dextérité ; attaquants avantagés." },
+            { name: 'Épuisé', desc: "Niveaux d'épuisement cumulatifs (1 à 6), du désavantage aux tests jusqu'à la mort." },
+            { name: 'Étourdi', desc: "Ne peut agir ni bouger ; rate Force et Dextérité ; attaquants avantagés." },
+            { name: 'Inconscient', desc: "Ne peut agir, tombe à terre et lâche tout ; rate Force/Dex ; coups en mêlée = critiques." },
+            { name: 'Invisible', desc: "Indétectable à vue ; avantage aux attaques, les attaquants ont le désavantage." },
+            { name: 'Paralysé', desc: "Ne peut agir ni bouger ; rate Force/Dex ; attaquants avantagés, coups à ≤ 1,5 m = critiques." },
+            { name: 'Pétrifié', desc: "Changé en pierre, inconscient ; résistance à tous les dégâts ; immunisé poison et maladie." }
+        ];
+        function condDesc(name) {
+            var c = CONDITIONS.filter(function (x) { return x.name === name; })[0];
+            return c ? c.desc : '';
+        }
+
+        // État : { round, turnIndex, combatants: [{ id, name, type:'pc'|'monster',
+        //          initiative, ac, hpMax, hpCurrent, conditions:[] }] }
+        function defaultState() {
+            return { round: 1, turnIndex: 0, combatants: [] };
+        }
+
+        function loadState() {
+            try {
+                var raw = window.localStorage.getItem(STORAGE_KEY);
+                if (!raw) { return defaultState(); }
+                var parsed = JSON.parse(raw);
+                if (!parsed || !Array.isArray(parsed.combatants)) { return defaultState(); }
+                parsed.round = parsed.round || 1;
+                parsed.turnIndex = parsed.turnIndex || 0;
+                return parsed;
+            } catch (e) {
+                return defaultState();
+            }
+        }
+
+        function saveState() {
+            try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+        }
+
+        var state = loadState();
+
+        function uid() {
+            return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        }
+        function abilityMod(score) { return Math.floor(((parseInt(score, 10) || 10) - 10) / 2); }
+        function byId(id) {
+            return state.combatants.filter(function (c) { return c.id === id; })[0];
+        }
+        function sortByInitiative() {
+            state.combatants.sort(function (a, b) { return (b.initiative || 0) - (a.initiative || 0); });
+        }
+        function persistAndRender() {
+            saveState();
+            render();
+        }
+
+        // Ajout d'un combattant (fiche perso ou saisie ad-hoc).
+        function addCombatant(data) {
+            data = data || {};
+            var hpMax = parseInt(data.hpMax, 10) || 0;
+            var hpCurrent = (data.hpCurrent != null && data.hpCurrent !== '')
+                ? (parseInt(data.hpCurrent, 10) || 0) : hpMax;
+            state.combatants.push({
+                id: uid(),
+                name: data.name || 'Sans nom',
+                type: data.type === 'pc' ? 'pc' : 'monster',
+                initiative: parseInt(data.initiative, 10) || 0,
+                ac: (data.ac != null && data.ac !== '') ? data.ac : '',
+                hpMax: hpMax,
+                hpCurrent: hpCurrent,
+                conditions: Array.isArray(data.conditions) ? data.conditions : []
+            });
+            sortByInitiative();
+            persistAndRender();
+        }
+
+        // Dérive un combattant (type Héros) depuis une fiche de personnage.
+        function fromSheet(character) {
+            var sheet = character.sheet || {};
+            var ab = sheet.abilities || {};
+            var mo = sheet.abilityModOverride || {};
+            var combat = sheet.combat || {};
+            var dexMod = (mo.dex !== '' && mo.dex != null) ? (parseInt(mo.dex, 10) || 0) : abilityMod(ab.dex);
+            var init = (combat.initiativeOverride !== '' && combat.initiativeOverride != null)
+                ? (parseInt(combat.initiativeOverride, 10) || 0) : dexMod;
+            return {
+                name: character.name,
+                type: 'pc',
+                initiative: init,
+                ac: (combat.ac != null && combat.ac !== '') ? combat.ac : '',
+                hpMax: combat.hpMax,
+                hpCurrent: (combat.hpCurrent != null && combat.hpCurrent !== '') ? combat.hpCurrent : combat.hpMax
+            };
+        }
+
+        function removeCombatant(id) {
+            state.combatants = state.combatants.filter(function (c) { return c.id !== id; });
+            if (state.turnIndex >= state.combatants.length) { state.turnIndex = 0; }
+            persistAndRender();
+        }
+
+        function adjustHp(id, delta) {
+            var c = byId(id);
+            if (!c) { return; }
+            var v = Math.max(0, (c.hpCurrent || 0) + delta);
+            if (c.hpMax > 0) { v = Math.min(c.hpMax, v); }
+            c.hpCurrent = v;
+            persistAndRender();
+        }
+
+        // Menu déroulant des 15 états (réutilise le style .mdnd-combo-list).
+        function closeConditionMenu() {
+            var m = listEl.querySelector('.mdnd-cond-menu');
+            if (m) { m.remove(); }
+            document.removeEventListener('click', onDocClickCond, true);
+        }
+        function onDocClickCond(e) {
+            var m = listEl.querySelector('.mdnd-cond-menu');
+            if (m && !m.contains(e.target) && !e.target.closest('[data-action="add-condition"]')) {
+                closeConditionMenu();
+            }
+        }
+        function openConditionMenu(c, row) {
+            var open = listEl.querySelector('.mdnd-cond-menu');
+            closeConditionMenu();
+            if (open) { return; } // Un clic sur « + État » alors qu'il est ouvert le referme.
+
+            var chipList = row.querySelector('.mdnd-chip-list');
+            var avail = CONDITIONS.filter(function (cond) { return c.conditions.indexOf(cond.name) === -1; });
+            var menu = document.createElement('div');
+            menu.className = 'mdnd-combo-list mdnd-cond-menu';
+            if (!avail.length) {
+                menu.innerHTML = '<div class="mdnd-combo-empty">Tous les états sont appliqués</div>';
+            } else {
+                menu.innerHTML = avail.map(function (cond) {
+                    return '<button type="button" class="mdnd-combo-item mdnd-cond-item" data-cond="' + escapeHtml(cond.name) + '" title="' + escapeHtml(cond.desc) + '">'
+                        + '<span class="mdnd-cond-item__name">' + escapeHtml(cond.name) + '</span>'
+                        + '<span class="mdnd-cond-item__desc">' + escapeHtml(cond.desc) + '</span>'
+                        + '</button>';
+                }).join('');
+            }
+            chipList.appendChild(menu);
+            menu.addEventListener('click', function (e) {
+                var it = e.target.closest('[data-cond]');
+                if (!it) { return; }
+                var cond = it.getAttribute('data-cond');
+                closeConditionMenu();
+                if (c.conditions.indexOf(cond) === -1) { c.conditions.push(cond); }
+                persistAndRender();
+            });
+            // Différé pour ne pas être refermé par le clic « + État » courant.
+            setTimeout(function () { document.addEventListener('click', onDocClickCond, true); }, 0);
+        }
+        function removeCondition(c, cond) {
+            c.conditions = c.conditions.filter(function (x) { return x !== cond; });
+            persistAndRender();
+        }
+
+        function nextTurn() {
+            if (!state.combatants.length) { return; }
+            state.turnIndex += 1;
+            if (state.turnIndex >= state.combatants.length) {
+                state.turnIndex = 0;
+                state.round += 1;
+            }
+            persistAndRender();
+        }
+
+        function resetCombat() {
+            if (state.combatants.length &&
+                !window.confirm('Démarrer un nouveau combat ? Les combattants actuels seront retirés.')) {
+                return;
+            }
+            state = defaultState();
+            persistAndRender();
+        }
+
+        // --- Rendu (markup maquette : .mdnd-init-row) ---
+        function rowHtml(c, isActive) {
+            var pvMax = c.hpMax || 0;
+            var pct = pvMax > 0 ? Math.max(0, Math.min(100, Math.round(c.hpCurrent / pvMax * 100))) : 0;
+            var bar = pvMax > 0 && pct <= 25 ? ' is-low' : (pvMax > 0 && pct <= 50 ? ' is-mid' : '');
+            var ko = pvMax > 0 && c.hpCurrent <= 0;
+            var isPc = c.type === 'pc';
+            var typeBadge = isPc
+                ? '<span class="mdnd-badge mdnd-badge-info">Héros</span>'
+                : '<span class="mdnd-badge">Monstre</span>';
+            var koBadge = ko ? '<span class="mdnd-badge mdnd-badge-danger">K.O.</span>' : '';
+
+            var chips = (c.conditions || []).map(function (cond) {
+                return '<span class="mdnd-chip" title="' + escapeHtml(condDesc(cond)) + '">' + escapeHtml(cond)
+                    + '<button class="mdnd-chip-del" type="button" data-action="del-condition" data-cond="'
+                    + escapeHtml(cond) + '" aria-label="Retirer ' + escapeHtml(cond) + '">×</button></span>';
+            }).join('');
+
+            return '<div class="mdnd-init-row' + (isActive ? ' is-active' : '') + (ko ? ' is-ko' : '') + '" data-id="' + escapeHtml(c.id) + '">'
+                + '<div class="mdnd-init-num"><input class="mdnd-input" type="number" value="' + escapeHtml(c.initiative) + '" data-action="init" aria-label="Initiative de ' + escapeHtml(c.name) + '"></div>'
+                + '<div class="mdnd-init-main">'
+                +   '<div class="mdnd-init-name"><span class="mdnd-init-name__text">' + escapeHtml(c.name) + '</span>' + typeBadge + koBadge + '</div>'
+                +   '<div class="mdnd-chip-list">' + chips + '<button class="mdnd-chip-add" type="button" data-action="add-condition">+ État</button></div>'
+                + '</div>'
+                + '<div class="mdnd-hp">'
+                +   '<div class="mdnd-hp-total"><span class="mdnd-hp-total__label">PV</span><span class="mdnd-hp-total__value">' + escapeHtml(c.hpCurrent) + ' / ' + escapeHtml(pvMax) + '</span></div>'
+                +   '<div class="mdnd-hp-bar' + bar + '"><i style="width:' + pct + '%"></i></div>'
+                +   '<div class="mdnd-hp-actions">'
+                +     '<button class="mdnd-button mdnd-button-danger" type="button" data-action="dmg" aria-label="Dégâts">−</button>'
+                +     '<input class="mdnd-input mdnd-hp-input" type="number" placeholder="0" data-action="amount" aria-label="Montant">'
+                +     '<button class="mdnd-button mdnd-button-secondary" type="button" data-action="heal" aria-label="Soin">+</button>'
+                +   '</div>'
+                + '</div>'
+                + '<div class="mdnd-stat"><span class="mdnd-stat__label">CA</span><span class="mdnd-stat__value">' + escapeHtml(c.ac || '—') + '</span></div>'
+                + '<div class="mdnd-init-actions"><button class="mdnd-button mdnd-button-secondary" type="button" data-action="remove" title="Retirer" aria-label="Retirer ' + escapeHtml(c.name) + '">✕</button></div>'
+                + '</div>';
+        }
+
+        function render() {
+            var has = state.combatants.length > 0;
+            if (state.turnIndex >= state.combatants.length) { state.turnIndex = 0; }
+            var active = has ? state.combatants[state.turnIndex] : null;
+
+            if (toolbarEl) { toolbarEl.hidden = !has; }
+            if (emptyEl) { emptyEl.hidden = has; }
+            if (roundNumEl) { roundNumEl.textContent = state.round; }
+            if (activeEl) { activeEl.hidden = !active; }
+            if (activeNameEl && active) { activeNameEl.textContent = active.name; }
+
+            listEl.innerHTML = state.combatants.map(function (c, idx) {
+                return rowHtml(c, idx === state.turnIndex);
+            }).join('');
+        }
+
+        // Délégation des actions sur les lignes.
+        listEl.addEventListener('click', function (e) {
+            var actionEl = e.target.closest('[data-action]');
+            if (!actionEl) { return; }
+            var row = e.target.closest('.mdnd-init-row');
+            if (!row) { return; }
+            var c = byId(row.getAttribute('data-id'));
+            if (!c) { return; }
+            var action = actionEl.getAttribute('data-action');
+            if (action === 'remove') {
+                removeCombatant(c.id);
+            } else if (action === 'dmg' || action === 'heal') {
+                var amt = parseInt(row.querySelector('[data-action="amount"]').value, 10);
+                if (!amt || amt < 0) { amt = 1; }
+                adjustHp(c.id, action === 'dmg' ? -amt : amt);
+            } else if (action === 'add-condition') {
+                openConditionMenu(c, row);
+            } else if (action === 'del-condition') {
+                removeCondition(c, actionEl.getAttribute('data-cond'));
+            }
+        });
+
+        // Édition de l'initiative (au blur) : réordonne la liste.
+        listEl.addEventListener('change', function (e) {
+            var actionEl = e.target.closest('[data-action="init"]');
+            if (!actionEl) { return; }
+            var row = e.target.closest('.mdnd-init-row');
+            var c = row ? byId(row.getAttribute('data-id')) : null;
+            if (!c) { return; }
+            c.initiative = parseInt(actionEl.value, 10) || 0;
+            sortByInitiative();
+            persistAndRender();
+        });
+
+        // --- Modale d'ajout ---
+        function fillSheetSelect() {
+            if (!sheetSelect) { return; }
+            sheetSelect.innerHTML = '<option value="">— Choisir un personnage —</option>'
+                + CHARACTERS.map(function (c, i) {
+                    return '<option value="' + i + '">' + escapeHtml(c.name) + '</option>';
+                }).join('');
+        }
+        function openAddModal() {
+            if (!addModal) { return; }
+            if (sheetSelect) { sheetSelect.value = ''; }
+            [fName, fInit, fHp, fCa].forEach(function (el) { if (el) { el.value = ''; } });
+            addModal.classList.add('is-active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeAddModal() {
+            if (!addModal) { return; }
+            addModal.classList.remove('is-active');
+            document.body.style.overflow = '';
+        }
+        function confirmAdd() {
+            var idx = sheetSelect ? sheetSelect.value : '';
+            if (idx !== '') {
+                var ch = CHARACTERS[parseInt(idx, 10)];
+                if (ch) { addCombatant(fromSheet(ch)); }
+            } else {
+                if (!fName.value.trim()) { fName.focus(); return; }
+                addCombatant({
+                    name: fName.value, type: 'monster',
+                    initiative: fInit.value, hpMax: fHp.value, ac: fCa.value
+                });
+            }
+            closeAddModal();
+        }
+
+        addBtns.forEach(function (b) { if (b) { b.addEventListener('click', openAddModal); } });
+        if (nextBtn) { nextBtn.addEventListener('click', nextTurn); }
+        if (resetBtn) { resetBtn.addEventListener('click', resetCombat); }
+        if (addConfirmBtn) { addConfirmBtn.addEventListener('click', confirmAdd); }
+        if (addModal) {
+            addModal.querySelectorAll('[data-close="combat"]').forEach(function (b) {
+                b.addEventListener('click', closeAddModal);
+            });
+            addModal.addEventListener('click', function (e) { if (e.target === addModal) { closeAddModal(); } });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && addModal.classList.contains('is-active')) { closeAddModal(); }
+            });
+        }
+
+        // Point d'entrée exposé pour un futur ajout direct depuis une fiche.
+        window.mdndCombat = { addCombatant: addCombatant, getState: function () { return state; } };
+
+        fillSheetSelect();
+        sortByInitiative();
+        render();
+    })();
 
     // --- RESTAURATION DEPUIS L'URL (au chargement / F5) ---
     // Hash attendu : `#onglet` ou `#onglet/idItem`.

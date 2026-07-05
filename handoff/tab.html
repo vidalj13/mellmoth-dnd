@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MDND · Onglet Combat — markup</title>
+<link rel="stylesheet" href="mdnd-combat.css">
+<style>body{margin:0;background:var(--mdnd-bg);padding:16px}</style>
+</head>
+<body>
+
+<!-- ============================================================
+     ONGLET COMBAT — markup de référence (état « en cours »).
+     Valeurs dynamiques = ${…} à générer en JS échappé.
+     Une .mdnd-init-row par combattant, triées init décroissante.
+     ============================================================ -->
+<section class="mdnd-combat" aria-label="Combat en cours">
+
+  <!-- (1) BARRE D'ENCOMBRE STICKY -->
+  <div class="mdnd-char-toolbar">
+    <div class="mdnd-combat-round">
+      <span class="mdnd-combat-round__label">Round</span>
+      <span class="mdnd-combat-round__num">3</span>
+    </div>
+    <div class="mdnd-combat-active">
+      <span class="mdnd-combat-active__label">Au tour de</span>
+      <span class="mdnd-combat-active__name">Théa Vaillepierre</span>
+    </div>
+    <div class="mdnd-combat-toolbar-actions">
+      <button class="mdnd-button" type="button">Tour suivant ›</button>
+      <button class="mdnd-button mdnd-button--secondary" type="button">Nouveau combat</button>
+      <button class="mdnd-button mdnd-button--danger" type="button">Terminer</button>
+    </div>
+  </div>
+
+  <!-- (2) LISTE D'INITIATIVE -->
+  <div class="mdnd-combat-list">
+
+    <!-- Ligne ACTIVE (héros) -->
+    <div class="mdnd-init-row is-active" data-id="1">
+      <div class="mdnd-init-num">
+        <input class="mdnd-input" type="number" value="19" aria-label="Initiative de Théa Vaillepierre">
+      </div>
+      <div class="mdnd-init-main">
+        <div class="mdnd-init-name">
+          <span class="mdnd-init-name__text">Théa Vaillepierre</span>
+          <span class="mdnd-badge mdnd-badge--info">Héros</span>
+        </div>
+        <div class="mdnd-chip-list">
+          <button class="mdnd-chip-add" type="button">+ État</button>
+        </div>
+      </div>
+      <div class="mdnd-hp">
+        <div class="mdnd-line-total">
+          <span class="mdnd-line-total__label">PV</span>
+          <span class="mdnd-line-total__value">30 / 34</span>
+        </div>
+        <div class="mdnd-hp-bar"><i style="width:88%"></i></div>
+        <div class="mdnd-hp-actions">
+          <button class="mdnd-button mdnd-button--danger" type="button" aria-label="Dégâts">−</button>
+          <input class="mdnd-input mdnd-hp-input" type="number" placeholder="0" aria-label="Montant">
+          <button class="mdnd-button mdnd-button--secondary" type="button" aria-label="Soin">+</button>
+        </div>
+      </div>
+      <div class="mdnd-stat">
+        <span class="mdnd-stat__label">CA</span>
+        <span class="mdnd-stat__value">18</span>
+      </div>
+      <div class="mdnd-init-actions">
+        <button class="mdnd-button mdnd-button--secondary" type="button" title="Détails" aria-label="Détails Théa">⋯</button>
+        <button class="mdnd-button mdnd-button--secondary" type="button" title="Retirer" aria-label="Retirer Théa">✕</button>
+      </div>
+    </div>
+
+    <!-- Monstre avec conditions -->
+    <div class="mdnd-init-row" data-id="2">
+      <div class="mdnd-init-num">
+        <input class="mdnd-input" type="number" value="15" aria-label="Initiative de Lyra Sombreflamme">
+      </div>
+      <div class="mdnd-init-main">
+        <div class="mdnd-init-name">
+          <span class="mdnd-init-name__text">Lyra Sombreflamme</span>
+          <span class="mdnd-badge mdnd-badge--info">Héros</span>
+        </div>
+        <div class="mdnd-chip-list">
+          <span class="mdnd-chip">Aveuglé <button type="button" aria-label="Retirer Aveuglé">✕</button></span>
+          <span class="mdnd-chip">Concentration <button type="button" aria-label="Retirer Concentration">✕</button></span>
+          <button class="mdnd-chip-add" type="button">+ État</button>
+        </div>
+      </div>
+      <div class="mdnd-hp">
+        <div class="mdnd-line-total">
+          <span class="mdnd-line-total__label">PV</span>
+          <span class="mdnd-line-total__value">11 / 22</span>
+        </div>
+        <div class="mdnd-hp-bar is-mid"><i style="width:50%"></i></div>
+        <div class="mdnd-hp-actions">
+          <button class="mdnd-button mdnd-button--danger" type="button" aria-label="Dégâts">−</button>
+          <input class="mdnd-input mdnd-hp-input" type="number" placeholder="0" aria-label="Montant">
+          <button class="mdnd-button mdnd-button--secondary" type="button" aria-label="Soin">+</button>
+        </div>
+      </div>
+      <div class="mdnd-stat">
+        <span class="mdnd-stat__label">CA</span>
+        <span class="mdnd-stat__value">13</span>
+      </div>
+      <div class="mdnd-init-actions">
+        <button class="mdnd-button mdnd-button--secondary" type="button" title="Détails" aria-label="Détails Lyra">⋯</button>
+        <button class="mdnd-button mdnd-button--secondary" type="button" title="Retirer" aria-label="Retirer Lyra">✕</button>
+      </div>
+    </div>
+
+    <!-- Monstre PV bas -->
+    <div class="mdnd-init-row" data-id="3">
+      <div class="mdnd-init-num">
+        <input class="mdnd-input" type="number" value="12" aria-label="Initiative de Ours-hibou">
+      </div>
+      <div class="mdnd-init-main">
+        <div class="mdnd-init-name">
+          <span class="mdnd-init-name__text">Ours-hibou</span>
+          <span class="mdnd-badge">Monstre</span>
+        </div>
+        <div class="mdnd-chip-list">
+          <span class="mdnd-chip">À terre <button type="button" aria-label="Retirer À terre">✕</button></span>
+          <button class="mdnd-chip-add" type="button">+ État</button>
+        </div>
+      </div>
+      <div class="mdnd-hp">
+        <div class="mdnd-line-total">
+          <span class="mdnd-line-total__label">PV</span>
+          <span class="mdnd-line-total__value">9 / 59</span>
+        </div>
+        <div class="mdnd-hp-bar is-low"><i style="width:15%"></i></div>
+        <div class="mdnd-hp-actions">
+          <button class="mdnd-button mdnd-button--danger" type="button" aria-label="Dégâts">−</button>
+          <input class="mdnd-input mdnd-hp-input" type="number" placeholder="0" aria-label="Montant">
+          <button class="mdnd-button mdnd-button--secondary" type="button" aria-label="Soin">+</button>
+        </div>
+      </div>
+      <div class="mdnd-stat">
+        <span class="mdnd-stat__label">CA</span>
+        <span class="mdnd-stat__value">13</span>
+      </div>
+      <div class="mdnd-init-actions">
+        <button class="mdnd-button mdnd-button--secondary" type="button" title="Détails" aria-label="Détails Ours-hibou">⋯</button>
+        <button class="mdnd-button mdnd-button--secondary" type="button" title="Retirer" aria-label="Retirer Ours-hibou">✕</button>
+      </div>
+    </div>
+
+    <!-- Monstre K.O. -->
+    <div class="mdnd-init-row is-ko" data-id="4">
+      <div class="mdnd-init-num">
+        <input class="mdnd-input" type="number" value="6" aria-label="Initiative de Gobelin">
+      </div>
+      <div class="mdnd-init-main">
+        <div class="mdnd-init-name">
+          <span class="mdnd-init-name__text">Gobelin</span>
+          <span class="mdnd-badge">Monstre</span>
+          <span class="mdnd-badge mdnd-badge--danger">K.O.</span>
+        </div>
+      </div>
+      <div class="mdnd-hp">
+        <div class="mdnd-line-total">
+          <span class="mdnd-line-total__label">PV</span>
+          <span class="mdnd-line-total__value">0 / 7</span>
+        </div>
+        <div class="mdnd-hp-bar is-low"><i style="width:0%"></i></div>
+        <div class="mdnd-hp-actions">
+          <button class="mdnd-button mdnd-button--danger" type="button" aria-label="Dégâts">−</button>
+          <input class="mdnd-input mdnd-hp-input" type="number" placeholder="0" aria-label="Montant">
+          <button class="mdnd-button mdnd-button--secondary" type="button" aria-label="Soin">+</button>
+        </div>
+      </div>
+      <div class="mdnd-stat">
+        <span class="mdnd-stat__label">CA</span>
+        <span class="mdnd-stat__value">15</span>
+      </div>
+      <div class="mdnd-init-actions">
+        <button class="mdnd-button mdnd-button--secondary" type="button" title="Détails" aria-label="Détails Gobelin">⋯</button>
+        <button class="mdnd-button mdnd-button--secondary" type="button" title="Retirer" aria-label="Retirer Gobelin">✕</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>
