@@ -1506,18 +1506,29 @@
             addModal.classList.remove('is-active');
             document.body.style.overflow = '';
         }
+        // Sélection d'une fiche : pré-remplit les champs en dessous (prévisu éditable).
+        function previewFromSheet() {
+            if (!sheetSelect || sheetSelect.value === '') { return; }
+            var ch = sheetChars[parseInt(sheetSelect.value, 10)];
+            if (!ch) { return; }
+            var d = fromSheet(ch);
+            if (fName) { fName.value = d.name || ''; }
+            if (fInit) { fInit.value = (d.initiative != null ? d.initiative : ''); }
+            if (fHp) { fHp.value = (d.hpMax != null && d.hpMax !== '') ? d.hpMax : ''; }
+            if (fCa) { fCa.value = (d.ac != null && d.ac !== '') ? d.ac : ''; }
+        }
+
         function confirmAdd() {
-            var idx = sheetSelect ? sheetSelect.value : '';
-            if (idx !== '') {
-                var ch = sheetChars[parseInt(idx, 10)];
-                if (ch) { addCombatant(fromSheet(ch)); }
-            } else {
-                if (!fName.value.trim()) { fName.focus(); return; }
-                addCombatant({
-                    name: fName.value, type: 'monster',
-                    initiative: fInit.value, hpMax: fHp.value, ac: fCa.value
-                });
-            }
+            if (!fName.value.trim()) { fName.focus(); return; }
+            // Une fiche sélectionnée => Héros (pc) ; sinon saisie ad-hoc => Monstre.
+            var fromLib = !!(sheetSelect && sheetSelect.value !== '');
+            addCombatant({
+                name: fName.value,
+                type: fromLib ? 'pc' : 'monster',
+                initiative: fInit.value,
+                hpMax: fHp.value,
+                ac: fCa.value
+            });
             closeAddModal();
         }
 
@@ -1525,6 +1536,7 @@
         if (nextBtn) { nextBtn.addEventListener('click', nextTurn); }
         if (resetBtn) { resetBtn.addEventListener('click', resetCombat); }
         if (addConfirmBtn) { addConfirmBtn.addEventListener('click', confirmAdd); }
+        if (sheetSelect) { sheetSelect.addEventListener('change', previewFromSheet); }
         if (addModal) {
             addModal.querySelectorAll('[data-close="combat"]').forEach(function (b) {
                 b.addEventListener('click', closeAddModal);

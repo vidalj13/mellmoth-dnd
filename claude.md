@@ -1,7 +1,7 @@
 # Mellmoth Forge — Hub D&D · Base de connaissances
 
 > Document de référence du projet « espace de jeu D&D réservé aux membres » sur le site Mellmoth Forge.
-> Établi le 16/06/2026 · Plugin `mellmoth-dnd` v1.2.4 (Inc. 4 — tracker de combat : PV temp, détail des états, select fiches rechargé à l'ouverture).
+> Établi le 16/06/2026 · Plugin `mellmoth-dnd` v1.2.5 (Inc. 4 — tracker de combat : sélection d'une fiche pré-remplit les champs de la popup).
 
 -----
 
